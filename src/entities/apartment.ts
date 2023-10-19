@@ -9,7 +9,10 @@ export class Apartment extends BaseEntity {
   @Column('real')
   area: number;
 
+  @Column('bit')
+  type: boolean;
+
   @ManyToOne(() => People, (people) => people.apartments, { cascade: true })
-  @JoinColumn({ name: 'peopleId' })
-  people: People;
+  @JoinColumn({ name: 'ownerId' })
+  owner: People;
 }
