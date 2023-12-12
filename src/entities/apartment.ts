@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { BaseEntity } from './base';
-import { People } from './people';
+import { People } from '../modules/people/people.entity';
 @Entity()
 export class Apartment extends BaseEntity {
   @PrimaryColumn()
