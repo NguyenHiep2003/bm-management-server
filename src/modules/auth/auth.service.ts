@@ -1,7 +1,6 @@
-import { compare } from 'bcrypt';
 import { UserService } from '../users/user.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ErrorMessage } from 'src/utils/enums/error-message/exception';
+import { ErrorMessage } from 'src/utils/enums/message/exception';
 import { JwtService } from '@nestjs/jwt';
 import { IJwtPayload } from './interface/jwt-payload.interface';
 
@@ -11,18 +10,14 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
   ) {}
-  async checkPassword(password: string, hashedPassword: string) {
-    try {
-      return await compare(password, hashedPassword);
-    } catch (error) {
-      throw error;
-    }
-  }
   async validateUser(email: string, password: string) {
     try {
       const user = await this.userService.findOneWithEmail(email);
       if (!user) throw new UnauthorizedException(ErrorMessage.WRONG_CREDENTIAL);
-      const isCorrectPass = await this.checkPassword(password, user.password);
+      const isCorrectPass = await this.userService.checkPassword(
+        password,
+        user.password,
+      );
       if (!isCorrectPass)
         throw new UnauthorizedException(ErrorMessage.WRONG_CREDENTIAL);
       return user.id;

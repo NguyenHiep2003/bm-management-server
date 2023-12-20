@@ -17,7 +17,8 @@ export class RoleAuthGuard extends AuthGuard('role') {
       context.getHandler(),
       context.getClass(),
     ]);
-    const userRole = context.switchToHttp().getRequest().user.role;
+    if (!rolesRequire) return true;
+    const userRole = context.switchToHttp().getRequest().user?.role;
     if (!rolesRequire.includes(userRole)) return false;
     return true;
   }
