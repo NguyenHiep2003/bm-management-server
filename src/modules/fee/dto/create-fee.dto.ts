@@ -1,5 +1,4 @@
-import { IsBoolean, IsNotEmpty, IsPositive, IsString } from 'class-validator';
-
+import { IsNotEmpty, IsPositive, IsString } from 'class-validator';
 export class CreateFeeDto {
   @IsString()
   @IsNotEmpty()
@@ -7,7 +6,4 @@ export class CreateFeeDto {
 
   @IsPositive()
   unitPrice: number;
-
-  @IsBoolean()
-  isOptional: boolean;
 }

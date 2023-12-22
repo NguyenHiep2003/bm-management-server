@@ -107,4 +107,17 @@ export class UserService {
       throw error;
     }
   }
+
+  async getAdmin() {
+    try {
+      return await this.userRepository.find({
+        where: { role: Role.ADMIN },
+        relations: { people: true },
+        select: ['id', 'createdAt', 'email', 'role', 'people'],
+      });
+    } catch (error) {
+      console.log('🚀 ~ UserService ~ getAdmin ~ error:', error);
+      throw error;
+    }
+  }
 }

@@ -1,10 +1,10 @@
 import { OmitType } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   Equals,
   IsArray,
-  IsDateString,
+  IsDate,
   IsDefined,
   IsEnum,
   IsNotEmpty,
@@ -21,13 +21,14 @@ import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
 export class PermanentHouseHolderInfo {
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
   name: string;
 
   @IsString()
   @IsNotEmpty()
   nation: string;
 
-  @IsDateString()
+  @IsDate()
   dateOfBirth: Date;
 
   @IsString()

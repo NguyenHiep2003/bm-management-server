@@ -14,6 +14,13 @@ import { Owner } from './modules/apartments/entities/owner.entity';
 import { ApartmentModule } from './modules/apartments/apartment.module';
 import { FeeModule } from './modules/fee/fee.module';
 import { Fee } from './modules/fee/entities/fee.entity';
+import { Bill } from './modules/fee/entities/bill.entity';
+import { TemporaryAbsent } from './modules/people/entities/temporary-absent.entity';
+import { OptionalFee } from './modules/charity/entities/optional-fee.entity';
+import { CharityFund } from './modules/charity/entities/charity-fund.entity';
+import { CharityModule } from './modules/charity/charity.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TaskModule } from './modules/task/task.module';
 
 @Module({
   imports: [
@@ -25,7 +32,17 @@ import { Fee } from './modules/fee/entities/fee.entity';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         ...config.get('database'),
-        entities: [People, Apartment, User, Owner, Fee],
+        entities: [
+          People,
+          Apartment,
+          User,
+          Owner,
+          Fee,
+          Bill,
+          TemporaryAbsent,
+          OptionalFee,
+          CharityFund,
+        ],
       }),
     }),
     RouterModule.register([
@@ -37,12 +54,16 @@ import { Fee } from './modules/fee/entities/fee.entity';
       { path: 'api/v1/apartment', module: ApartmentModule },
       { path: 'api/v1/people', module: PeopleModule },
       { path: 'api/v1/fee', module: FeeModule },
+      { path: 'api/v1/charity', module: CharityModule },
     ]),
+    ScheduleModule.forRoot(),
+    TaskModule,
     PeopleModule,
     UserModule,
     AuthModule,
     ApartmentModule,
     FeeModule,
+    CharityModule,
   ],
   controllers: [],
   providers: [],

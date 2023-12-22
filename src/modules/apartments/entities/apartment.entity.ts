@@ -9,6 +9,7 @@ import {
 import { ApartmentType } from 'src/utils/enums/attribute/apartment-type';
 import { Owner } from './owner.entity';
 import { People } from 'src/modules/people/entities/people.entity';
+import { Bill } from 'src/modules/fee/entities/bill.entity';
 @Entity()
 export class Apartment {
   @PrimaryColumn()
@@ -28,4 +29,6 @@ export class Apartment {
     cascade: ['insert'],
   })
   people: People[];
+
+  bills: Bill[];
 }

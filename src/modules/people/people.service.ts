@@ -6,13 +6,26 @@ import { ApartmentService } from '../apartments/apartment.service';
 import { ErrorMessage } from 'src/utils/enums/message/exception';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
 import { RelationType } from 'src/utils/enums/attribute/householder';
-
+import { TemporaryAbsent } from './entities/temporary-absent.entity';
+import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
+import { PartialType, PickType } from '@nestjs/swagger';
+export class PeopleFilter extends PickType(PartialType(People), [
+  'email',
+  'name',
+  'gender',
+  'nation',
+  'phoneNumber',
+  'citizenId',
+  'apartmentId',
+]) {}
 @Injectable()
 export class PeopleService {
   constructor(
     @InjectRepository(People)
     private readonly peopleRepository: Repository<People>,
     private readonly apartmentService: ApartmentService,
+    @InjectRepository(TemporaryAbsent)
+    private readonly temporaryAbsentRepository: Repository<TemporaryAbsent>,
   ) {}
   async getHouseholdWithId(apartmentId: string) {
     try {
@@ -57,9 +70,14 @@ export class PeopleService {
     }
   }
 
-  async getAllPeople(page: number, recordPerPage: number) {
+  async getAllPeople(
+    page: number,
+    recordPerPage: number,
+    filter?: PeopleFilter,
+  ) {
     try {
       return await this.peopleRepository.find({
+        where: filter,
         take: recordPerPage,
         skip: page * recordPerPage,
       });
@@ -106,6 +124,81 @@ export class PeopleService {
       return await this.peopleRepository.update({ id }, data);
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ updateOne ~ error:', error);
+      throw error;
+    }
+  }
+
+  async updateResidencyStatus(peopleId: string, status: ResidencyStatus) {
+    try {
+      const people = await this.peopleRepository.findOne({
+        where: { id: peopleId },
+      });
+      if (!people) throw new BadRequestException(ErrorMessage.PEOPLE_NOT_FOUND);
+      if (people.status == status)
+        throw new BadRequestException('update failed');
+      const previousStatus = people.status;
+      people.status = status;
+      await this.peopleRepository.save(people);
+      return previousStatus;
+    } catch (error) {
+      console.log('🚀 ~ PeopleService ~ updateResidencyStatus ~ error:', error);
+      throw error;
+    }
+  }
+
+  async createTemporaryAbsent(
+    peopleId: string,
+    reason: string,
+    startDate: Date,
+    endDate: Date,
+    destinationAddress: string,
+    previousStatus: ResidencyStatus,
+  ) {
+    try {
+      return await this.temporaryAbsentRepository.save({
+        peopleId,
+        reason,
+        startDate,
+        endDate,
+        destinationAddress,
+        previousStatus,
+      });
+    } catch (error) {
+      console.log('🚀 ~ PeopleService ~ error:', error);
+      throw error;
+    }
+  }
+
+  async rollbackStatusAfterAbsent(peopleId: string) {
+    try {
+      const temporaryAbsent = await this.temporaryAbsentRepository.findOne({
+        where: { peopleId },
+      });
+      if (!temporaryAbsent)
+        throw new BadRequestException(
+          'Temporary absent of this people not found',
+        );
+      await this.peopleRepository.update(
+        { id: peopleId },
+        { status: temporaryAbsent.previousStatus },
+      );
+      return await this.temporaryAbsentRepository.softDelete({ peopleId });
+    } catch (error) {
+      console.log(
+        '🚀 ~ PeopleService ~ rollBackStatusAfterAbsent ~ error:',
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async getAbsentList() {
+    try {
+      return await this.temporaryAbsentRepository.find({
+        relations: { people: true },
+      });
+    } catch (error) {
+      console.log('🚀 ~ PeopleService ~ getAbsentList ~ error:', error);
       throw error;
     }
   }

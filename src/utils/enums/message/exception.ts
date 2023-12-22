@@ -11,4 +11,5 @@ export const enum ErrorMessage {
   HOUSEHOLD_NOT_FOUND = 'This apartment does not have household',
   CANNOT_DELETE_HOUSEHOLDER_THIS_WAY = 'Cannot delete this way because this person is householder, try deleting household',
   PEOPLE_ALREADY_HAVE_ACCOUNT = 'This people already have an account',
+  BILL_EXIST = 'Bill have been created this month',
 }

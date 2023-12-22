@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Patch,
   Post,
@@ -19,12 +20,10 @@ import { ErrorMessage } from 'src/utils/enums/message/exception';
 import { SuccessMessage } from 'src/utils/enums/message/success';
 import { User } from './user.entity';
 import { RoleAuthGuard } from '../auth/guards/role-auth.guard';
-import { Public } from 'src/utils/decorators/public.decorator';
 
 @Controller()
 export class UserController {
   constructor(private readonly userService: UserService) {}
-  @Public()
   @RolesDecor([Role.MANAGER])
   @UseGuards(RoleAuthGuard)
   @Post('manager')
@@ -88,6 +87,15 @@ export class UserController {
   async deleteOne(@Param('id') id: string) {
     try {
       return await this.userService.deleteAccount(id);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Get()
+  async getAdmin() {
+    try {
+      return await this.userService.getAdmin();
     } catch (error) {
       throw error;
     }

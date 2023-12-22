@@ -19,6 +19,8 @@ import { ErrorMessage } from 'src/utils/enums/message/exception';
 import { RegisterPermanentResidenceDto } from './dto/register-permanent-residence.dto';
 import { RegisterTemporaryResidenceDto } from './dto/register-temporary-residence';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
+import { RegisterTemporaryAbsentDto } from './dto/register-temporary-absent.dto';
+import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
 
 @Controller()
 export class PeopleController {
@@ -76,6 +78,47 @@ export class PeopleController {
           others,
         );
       }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Post(':id/registerAbsent')
+  async registerAbsentTemporary(
+    @Param('id') id: string,
+    @Body() data: RegisterTemporaryAbsentDto,
+  ) {
+    try {
+      const { reason, startDate, endDate, destinationAddress } = data;
+      const previousStatus = await this.peopleService.updateResidencyStatus(
+        id,
+        ResidencyStatus.TEMPORARILY_ABSENT,
+      );
+      return await this.peopleService.createTemporaryAbsent(
+        id,
+        reason,
+        startDate,
+        endDate,
+        destinationAddress,
+        previousStatus,
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+  @Get('absentList')
+  async getAbsentList() {
+    try {
+      return await this.peopleService.getAbsentList();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @Patch(':id/rollbackStatus')
+  async rollbackStatusAfterAbsent(@Param('id') peopleId: string) {
+    try {
+      return await this.peopleService.rollbackStatusAfterAbsent(peopleId);
     } catch (error) {
       throw error;
     }
