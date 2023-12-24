@@ -1,4 +1,4 @@
-import { BaseEntity } from 'src/share/base.entity';
+import { BaseEntity } from 'src/shared/entities/base.entity';
 import { Column, Entity } from 'typeorm';
 import { CharityFund } from './charity-fund.entity';
 

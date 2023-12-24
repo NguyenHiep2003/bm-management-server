@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  NotFoundException,
   Param,
   Patch,
   Post,
@@ -10,18 +11,23 @@ import {
 } from '@nestjs/common';
 import { ApartmentService } from './apartment.service';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
-import { ErrorMessage } from 'src/utils/enums/message/exception';
+import { ErrorMessage } from 'src/utils/enums/message/error';
 import { UpdateOwnerDto } from './dto/update-owner.dto';
-import { SuccessMessage } from 'src/utils/enums/message/success';
 import { RoleAuthGuard } from '../auth/guards/role-auth.guard';
-import { RolesDecor } from 'src/utils/decorators/roles.decorator';
+import { RolesDecor } from 'src/shared/decorators/roles.decorator';
 import { Role } from 'src/utils/enums/attribute/role';
+import { EntityNotFound } from 'src/shared/custom/fail-result.custom';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('apartments')
+@ApiBearerAuth()
 @Controller()
-@RolesDecor([Role.MANAGER])
 @UseGuards(RoleAuthGuard)
 export class ApartmentController {
   constructor(private readonly apartmentService: ApartmentService) {}
+  @ApiOperation({ summary: 'Tạo căn hộ mới' })
+  @UseGuards(RoleAuthGuard)
+  @RolesDecor([Role.MANAGER])
   @Post()
   async createApartment(@Body() data: CreateApartmentDto) {
     try {
@@ -35,7 +41,7 @@ export class ApartmentController {
       throw error;
     }
   }
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
+  @ApiOperation({ summary: 'Lấy danh sách tất cả các hộ' })
   @Get()
   async getAllApartment() {
     try {
@@ -44,6 +50,7 @@ export class ApartmentController {
       throw error;
     }
   }
+  @ApiOperation({ summary: 'Thay đổi chủ sở hữu' })
   @Patch('/:apartmentId/owner')
   async updateOwner(
     @Param('apartmentId') apartmentId: string,
@@ -51,8 +58,10 @@ export class ApartmentController {
   ) {
     try {
       await this.apartmentService.updateOwner(apartmentId, data);
-      return { message: SuccessMessage.UPDATE_SUCCESSFULLY };
+      return;
     } catch (error) {
+      if (error instanceof EntityNotFound)
+        throw new NotFoundException(error.message);
       throw error;
     }
   }

@@ -1,6 +1,5 @@
 import { UserService } from '../users/user.service';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { ErrorMessage } from 'src/utils/enums/message/exception';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { IJwtPayload } from './interface/jwt-payload.interface';
 
@@ -13,13 +12,12 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     try {
       const user = await this.userService.findOneWithEmail(email);
-      if (!user) throw new UnauthorizedException(ErrorMessage.WRONG_CREDENTIAL);
+      if (!user) return;
       const isCorrectPass = await this.userService.checkPassword(
         password,
         user.password,
       );
-      if (!isCorrectPass)
-        throw new UnauthorizedException(ErrorMessage.WRONG_CREDENTIAL);
+      if (!isCorrectPass) return;
       return user.id;
     } catch (error) {
       console.log('🚀 ~ AuthService ~ validateUser ~ error:', error);

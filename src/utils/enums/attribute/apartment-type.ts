@@ -1,4 +1,4 @@
 export enum ApartmentType {
-  NORMAL = 'Normal',
+  NORMAL = 'Thường',
   PENTHOUSE = 'Penthouse',
 }

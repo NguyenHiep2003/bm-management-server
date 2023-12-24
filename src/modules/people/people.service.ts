@@ -1,23 +1,27 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { People } from 'src/modules/people/entities/people.entity';
 import { Repository } from 'typeorm';
 import { ApartmentService } from '../apartments/apartment.service';
-import { ErrorMessage } from 'src/utils/enums/message/exception';
+import { ErrorMessage } from 'src/utils/enums/message/error';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
 import { RelationType } from 'src/utils/enums/attribute/householder';
 import { TemporaryAbsent } from './entities/temporary-absent.entity';
 import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
-import { PartialType, PickType } from '@nestjs/swagger';
-export class PeopleFilter extends PickType(PartialType(People), [
-  'email',
-  'name',
-  'gender',
-  'nation',
-  'phoneNumber',
-  'citizenId',
-  'apartmentId',
-]) {}
+import { PartialType } from '@nestjs/swagger';
+import {
+  EntityNotFound,
+  FailResult,
+  UpdateFail,
+} from 'src/shared/custom/fail-result.custom';
+import { BasePeopleInfo } from './dto/register-residence.dto';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+export class PeopleFilter extends PartialType(BasePeopleInfo) {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  apartmentId?: string;
+}
 @Injectable()
 export class PeopleService {
   constructor(
@@ -43,8 +47,7 @@ export class PeopleService {
     try {
       const apartment =
         await this.apartmentService.findApartmentWithId(apartmentId);
-      if (!apartment)
-        throw new BadRequestException(ErrorMessage.APARTMENT_NOT_FOUND);
+      if (!apartment) return null;
       apartment.people = people;
       return await this.apartmentService.saveApartment(apartment);
     } catch (error) {
@@ -60,8 +63,7 @@ export class PeopleService {
         false,
         true,
       );
-      if (!apartment)
-        throw new BadRequestException(ErrorMessage.APARTMENT_NOT_FOUND);
+      if (!apartment) return null;
       apartment.people.push(...people);
       return await this.apartmentService.saveApartment(apartment);
     } catch (error) {
@@ -70,12 +72,16 @@ export class PeopleService {
     }
   }
 
-  async getAllPeople(
+  async getAllPeopleWithFilter(
     page: number,
     recordPerPage: number,
     filter?: PeopleFilter,
   ) {
     try {
+      if (page == undefined || !recordPerPage)
+        return await this.peopleRepository.find({
+          where: filter,
+        });
       return await this.peopleRepository.find({
         where: filter,
         take: recordPerPage,
@@ -100,9 +106,7 @@ export class PeopleService {
     try {
       const people = await this.peopleRepository.findOne({ where: { id } });
       if (people.relationWithHouseholder == RelationType.HOUSEHOLDER)
-        throw new BadRequestException(
-          ErrorMessage.CANNOT_DELETE_HOUSEHOLDER_THIS_WAY,
-        );
+        return null;
       return await this.peopleRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deletePeopleById ~ error:', error);
@@ -133,14 +137,17 @@ export class PeopleService {
       const people = await this.peopleRepository.findOne({
         where: { id: peopleId },
       });
-      if (!people) throw new BadRequestException(ErrorMessage.PEOPLE_NOT_FOUND);
+      if (!people) throw new EntityNotFound(ErrorMessage.PEOPLE_NOT_FOUND);
       if (people.status == status)
-        throw new BadRequestException('update failed');
+        throw new UpdateFail(ErrorMessage.UPDATE_RESIDENCY_NOT_CHANGE);
       const previousStatus = people.status;
       people.status = status;
       await this.peopleRepository.save(people);
       return previousStatus;
     } catch (error) {
+      if (error instanceof FailResult) {
+        throw error;
+      }
       console.log('🚀 ~ PeopleService ~ updateResidencyStatus ~ error:', error);
       throw error;
     }
@@ -175,15 +182,14 @@ export class PeopleService {
         where: { peopleId },
       });
       if (!temporaryAbsent)
-        throw new BadRequestException(
-          'Temporary absent of this people not found',
-        );
+        throw new EntityNotFound(ErrorMessage.TEMPORARY_ABSENT_NOT_FOUND);
       await this.peopleRepository.update(
         { id: peopleId },
         { status: temporaryAbsent.previousStatus },
       );
       return await this.temporaryAbsentRepository.softDelete({ peopleId });
     } catch (error) {
+      if (error instanceof EntityNotFound) throw error;
       console.log(
         '🚀 ~ PeopleService ~ rollBackStatusAfterAbsent ~ error:',
         error,

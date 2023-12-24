@@ -1,15 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Fee } from './entities/fee.entity';
 import { LessThan, Repository, SelectQueryBuilder } from 'typeorm';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { UpdateFeeDto } from './dto/update-fee.dto';
 import { Bill } from './entities/bill.entity';
-import { ErrorMessage } from 'src/utils/enums/message/exception';
+import { ErrorMessage } from 'src/utils/enums/message/error';
 import { People } from '../people/entities/people.entity';
 import { BillStatus } from 'src/utils/enums/attribute/bill-status';
 import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
-
+import {
+  CreateFail,
+  EntityNotFound,
+  FailResult,
+  UpdateFail,
+} from 'src/shared/custom/fail-result.custom';
 @Injectable()
 export class FeeService {
   constructor(
@@ -57,7 +62,7 @@ export class FeeService {
       const existBill = await this.billRepository.findOne({
         where: { month: new Date().getMonth(), year: new Date().getFullYear() },
       });
-      if (existBill) return { message: ErrorMessage.BILL_EXIST };
+      if (existBill) throw new CreateFail(ErrorMessage.BILL_EXIST);
       const bills = await this.feeRepository
         .createQueryBuilder('fee')
         .innerJoin(
@@ -80,6 +85,7 @@ export class FeeService {
         .getRawMany();
       return await this.billRepository.save(bills);
     } catch (error) {
+      if (error instanceof CreateFail) throw error;
       console.log('🚀 ~ FeeService ~ createBill ~ error:', error);
       throw error;
     }
@@ -188,16 +194,17 @@ export class FeeService {
         .andWhere('bill.month = :month', { month })
         .andWhere('bill.year = :year', { year })
         .getRawOne();
-      if (!totalFee) throw new BadRequestException('Bill not exist');
+      if (!totalFee) throw new EntityNotFound(ErrorMessage.BILL_NOT_FOUND);
       if (totalFee.status == BillStatus.HAVE_PAID)
-        throw new BadRequestException('This bills have been paid');
+        throw new UpdateFail(ErrorMessage.BILL_HAVE_BEEN_PAID);
       if (totalFee.total != payMoney)
-        throw new BadRequestException('Pay money is not suitable');
+        throw new UpdateFail(ErrorMessage.MONEY_NOT_SUITABLE);
       return await this.billRepository.update(
         { apartmentId, month, year },
         { payDay: new Date(), payerName, status: BillStatus.HAVE_PAID },
       );
     } catch (error) {
+      if (error instanceof FailResult) throw error;
       console.log('🚀 ~ FeeService ~ error:', error);
       throw error;
     }

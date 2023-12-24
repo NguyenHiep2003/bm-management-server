@@ -1,11 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Apartment } from './entities/apartment.entity';
 import { Repository } from 'typeorm';
 import { Owner } from './entities/owner.entity';
 import { CreateApartmentDto } from './dto/create-apartment.dto';
 import { UpdateOwnerDto } from './dto/update-owner.dto';
-import { ErrorMessage } from 'src/utils/enums/message/exception';
+import { ErrorMessage } from 'src/utils/enums/message/error';
+import { EntityNotFound } from 'src/shared/custom/fail-result.custom';
 
 @Injectable()
 export class ApartmentService {
@@ -66,7 +67,7 @@ export class ApartmentService {
         },
       });
       if (!apartment)
-        throw new BadRequestException(ErrorMessage.APARTMENT_NOT_FOUND);
+        throw new EntityNotFound(ErrorMessage.APARTMENT_NOT_FOUND);
       const oldOwner = apartment.owner;
       const owner = this.ownerRepository.create(data);
       apartment.owner = owner;
@@ -76,6 +77,7 @@ export class ApartmentService {
       }
       return true;
     } catch (error) {
+      if (error instanceof EntityNotFound) throw error;
       console.log('🚀 ~ ApartmentService ~ updateOwner ~ error:', error);
       throw error;
     }

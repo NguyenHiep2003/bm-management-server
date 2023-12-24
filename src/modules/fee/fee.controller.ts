@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -12,18 +14,24 @@ import {
 import { FeeService } from './fee.service';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { RoleAuthGuard } from '../auth/guards/role-auth.guard';
-import { RolesDecor } from 'src/utils/decorators/roles.decorator';
+import { RolesDecor } from 'src/shared/decorators/roles.decorator';
 import { Role } from 'src/utils/enums/attribute/role';
 import { UpdateFeeDto } from './dto/update-fee.dto';
 import { GetFeeOfApartmentQueryDto } from './dto/get-fee-of-apartment-query.dto';
 import { GetSummaryPaymentDto } from './dto/get-summary-payment.dto';
 import { AddPaymentDto } from './dto/add-payment.dto';
+import { CreateFail, FailResult } from 'src/shared/custom/fail-result.custom';
+import { ErrorMessage } from 'src/utils/enums/message/error';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-@UseGuards(RoleAuthGuard)
-@RolesDecor([Role.MANAGER])
+@ApiTags('fee')
+@ApiBearerAuth()
 @Controller()
 export class FeeController {
   constructor(private readonly feeService: FeeService) {}
+  @ApiOperation({ summary: 'Tạo khoản phí mới (chỉ dành cho quản lý)' })
+  @UseGuards(RoleAuthGuard)
+  @RolesDecor([Role.MANAGER])
   @Post()
   async addNewFee(@Body() data: CreateFeeDto) {
     try {
@@ -33,6 +41,7 @@ export class FeeController {
     }
   }
 
+  @ApiOperation({ summary: 'Lấy thông tin các khoản phí hiện tại' })
   @Get()
   async getAllFee() {
     try {
@@ -42,6 +51,9 @@ export class FeeController {
     }
   }
 
+  @ApiOperation({ summary: 'Xóa một khoản phí (chỉ dành cho quản lý)' })
+  @UseGuards(RoleAuthGuard)
+  @RolesDecor([Role.MANAGER])
   @Delete(':id')
   async deleteFee(@Param('id') id: string) {
     try {
@@ -51,7 +63,7 @@ export class FeeController {
     }
   }
 
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
+  @ApiOperation({ summary: 'Lấy danh sách tất cả các hóa đơn đang bị nợ' })
   @Get('bills/dept')
   async getAllDept() {
     try {
@@ -61,7 +73,9 @@ export class FeeController {
     }
   }
 
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
+  @ApiOperation({
+    summary: 'Lấy thông tin hóa đơn của một căn hộ theo năm, tháng',
+  })
   @Get('bills/:apartmentId')
   async getBills(
     @Param('apartmentId') apartmentId: string,
@@ -79,7 +93,10 @@ export class FeeController {
     }
   }
 
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
+  @ApiOperation({
+    summary:
+      'Lấy danh sách các hóa đơn theo tháng, năm và có thể lọc theo trạng thái nợ hay đã đóng',
+  })
   @Get('bills')
   async getAllPayment(@Query() filter: GetSummaryPaymentDto) {
     try {
@@ -90,20 +107,32 @@ export class FeeController {
     }
   }
 
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
+  @ApiOperation({
+    summary:
+      'Tạo hóa đơn của tháng hiện tại, thông thường không cần API này do đã cài đặt lập lịch sắn trên server để tạo tự động hóa đơn',
+  })
   @Post('bills')
   async createBills() {
     try {
-      return await this.feeService.createBills();
+      await this.feeService.createBills();
+      return;
     } catch (error) {
+      if (error instanceof CreateFail)
+        throw new ConflictException(ErrorMessage.BILL_EXIST);
       throw error;
     }
   }
-  @RolesDecor([Role.ADMIN, Role.MANAGER])
-  @Patch('bills')
-  async addPayment(@Body() data: AddPaymentDto) {
+
+  @ApiOperation({
+    summary: 'Thêm nộp tiền cho căn hộ',
+  })
+  @Patch('bills/:apartmentId')
+  async addPayment(
+    @Param('apartmentId') apartmentId: string,
+    @Body() data: AddPaymentDto,
+  ) {
     try {
-      const { month, year, payMoney, payerName, apartmentId } = data;
+      const { month, year, payMoney, payerName } = data;
       return await this.feeService.addPayment(
         apartmentId,
         payMoney,
@@ -112,10 +141,17 @@ export class FeeController {
         payerName,
       );
     } catch (error) {
+      if (error instanceof FailResult)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }
 
+  @ApiOperation({
+    summary: 'Chỉnh sửa đơn giá khoản phí (chỉ dành cho quả lý)',
+  })
+  @UseGuards(RoleAuthGuard)
+  @RolesDecor([Role.MANAGER])
   @Patch(':id')
   async updateFee(@Param('id') id: string, @Body() data: UpdateFeeDto) {
     try {

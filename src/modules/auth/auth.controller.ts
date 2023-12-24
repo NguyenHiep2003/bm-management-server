@@ -1,12 +1,17 @@
-import { Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { UserDecor } from 'src/utils/decorators/user.decorator';
-import { Public } from 'src/utils/decorators/public.decorator';
+import { UserDecor } from 'src/shared/decorators/user.decorator';
+import { Public } from 'src/shared/decorators/public.decorator';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LoginDto } from './dto/login.dto';
+@ApiTags('auth')
+@ApiBearerAuth()
 @Controller()
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-  @HttpCode(200)
+  @ApiBody({ type: LoginDto })
+  @ApiOperation({ summary: 'Đăng nhập' })
   @Public()
   @UseGuards(LocalAuthGuard)
   @Post('login')

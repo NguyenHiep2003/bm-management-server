@@ -1,10 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { OptionalFee } from './entities/optional-fee.entity';
 import { CharityFund } from './entities/charity-fund.entity';
 import { CreateOptionalFeeDto } from './dto/create-optional-fee.dto';
 import { Repository } from 'typeorm';
 import { PeopleService } from '../people/people.service';
+import {
+  CreateFail,
+  EntityNotFound,
+  FailResult,
+} from 'src/shared/custom/fail-result.custom';
+import { ErrorMessage } from 'src/utils/enums/message/error';
 
 @Injectable()
 export class CharityService {
@@ -42,17 +48,21 @@ export class CharityService {
     amount: number,
   ) {
     try {
-      const people = await this.peopleService.getAllPeople(null, null, {
-        name: donatorName,
-        apartmentId,
-      });
-      if (!people[0]) throw new BadRequestException();
+      const people = await this.peopleService.getAllPeopleWithFilter(
+        null,
+        null,
+        {
+          name: donatorName,
+          apartmentId,
+        },
+      );
+      if (!people[0]) throw new EntityNotFound(ErrorMessage.PEOPLE_NOT_FOUND);
       const fee = await this.optionalFeeRepository.findOne({
         where: { id: optionalFeeId },
       });
-      if (!fee) throw new BadRequestException('Fee not found');
+      if (!fee) throw new EntityNotFound(ErrorMessage.FEE_NOT_FOUND);
       if (fee.endDate.getTime() < new Date().getTime())
-        throw new BadRequestException('Expired Fee');
+        throw new CreateFail(ErrorMessage.EXPIRED_FEE);
       return await this.charityFundRepository.save({
         optionalFeeId,
         donatorName,
@@ -60,6 +70,7 @@ export class CharityService {
         amount,
       });
     } catch (error) {
+      if (error instanceof FailResult) throw error;
       console.log('🚀 ~ CharityService ~ error:', error);
       throw error;
     }
@@ -82,7 +93,7 @@ export class CharityService {
       for (const record of data) {
         sum += Number(record.total);
       }
-      return { data, sum };
+      return { fund: data, sum };
     } catch (error) {
       console.log('🚀 ~ CharityService ~ summarizeFundOfFeeId ~ error:', error);
     }

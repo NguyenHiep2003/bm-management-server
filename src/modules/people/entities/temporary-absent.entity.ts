@@ -1,6 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { People } from './people.entity';
-import { BaseEntity } from 'src/share/base.entity';
+import { BaseEntity } from 'src/shared/entities/base.entity';
 import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
 
 @Entity()

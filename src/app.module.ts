@@ -20,13 +20,16 @@ import { OptionalFee } from './modules/charity/entities/optional-fee.entity';
 import { CharityFund } from './modules/charity/entities/charity-fund.entity';
 import { CharityModule } from './modules/charity/charity.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { TaskModule } from './modules/task/task.module';
+import { TaskModule } from './modules/tasks/task.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import mail from './config/mail';
+import { appProvider } from './app.provider';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [database, jwt],
+      load: [database, jwt, mail],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -45,13 +48,17 @@ import { TaskModule } from './modules/task/task.module';
         ],
       }),
     }),
+    MailerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => config.get('mail'),
+    }),
     RouterModule.register([
       {
-        path: 'api/v1/user',
+        path: 'api/v1/users',
         module: UserModule,
       },
       { path: 'api/v1/auth', module: AuthModule },
-      { path: 'api/v1/apartment', module: ApartmentModule },
+      { path: 'api/v1/apartments', module: ApartmentModule },
       { path: 'api/v1/people', module: PeopleModule },
       { path: 'api/v1/fee', module: FeeModule },
       { path: 'api/v1/charity', module: CharityModule },
@@ -66,6 +73,6 @@ import { TaskModule } from './modules/task/task.module';
     CharityModule,
   ],
   controllers: [],
-  providers: [],
+  providers: appProvider,
 })
 export class AppModule {}

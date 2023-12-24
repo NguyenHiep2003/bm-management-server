@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { FeeService } from '../fee/fee.service';
+import { CreateFail } from 'src/shared/custom/fail-result.custom';
 
 @Injectable()
 export class TaskService {
@@ -11,6 +12,7 @@ export class TaskService {
       await this.feeService.createBills();
       return await this.feeService.deleteBillAfterSixMonth();
     } catch (error) {
+      if (error instanceof CreateFail) return;
       console.log(
         '🚀 ~ TaskService ~ createBillAtTheBeginningOfMonth ~ error:',
         error,

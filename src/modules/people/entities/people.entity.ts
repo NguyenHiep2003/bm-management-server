@@ -1,5 +1,5 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import { BaseEntity } from '../../../share/base.entity';
+import { BaseEntity } from '../../../shared/entities/base.entity';
 import { Gender } from 'src/utils/enums/attribute/gender';
 import { Apartment } from 'src/modules/apartments/entities/apartment.entity';
 import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
