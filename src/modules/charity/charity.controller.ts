@@ -6,6 +6,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CharityService } from './charity.service';
 import { CreateOptionalFeeDto } from './dto/create-optional-fee.dto';
@@ -16,6 +17,7 @@ import {
   EntityNotFound,
 } from 'src/shared/custom/fail-result.custom';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQuery } from 'src/shared/custom/pagination.query';
 @ApiTags('charity')
 @ApiBearerAuth()
 @Controller()
@@ -73,9 +75,22 @@ export class CharityController {
     summary: 'Thống kê quỹ của khoản phí từ thiện có Id là feeId',
   })
   @Get('fee/:feeId/fund')
-  async getStatisticOfFeeId(@Param('feeId') optionalFeeId: string) {
+  async getStatisticOfFeeId(
+    @Param('feeId') optionalFeeId: string,
+    @Query() query: PaginationQuery,
+  ) {
     try {
-      return await this.charityService.summarizeFundOfFeeId(optionalFeeId);
+      const { page, recordPerPage } = query;
+      const { fund, sum } =
+        await this.charityService.summarizeFundOfFeeId(optionalFeeId);
+      const totalRecord = fund.length;
+      const totalPage = Math.ceil(totalRecord / recordPerPage);
+      return {
+        totalRecord,
+        totalPage,
+        sum,
+        fund: fund.slice((page - 1) * recordPerPage, page * recordPerPage),
+      };
     } catch (error) {
       throw error;
     }

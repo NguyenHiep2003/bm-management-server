@@ -78,14 +78,10 @@ export class PeopleService {
     filter?: PeopleFilter,
   ) {
     try {
-      if (page == undefined || !recordPerPage)
-        return await this.peopleRepository.find({
-          where: filter,
-        });
-      return await this.peopleRepository.find({
+      return await this.peopleRepository.findAndCount({
         where: filter,
         take: recordPerPage,
-        skip: page * recordPerPage,
+        skip: (page - 1) * recordPerPage,
       });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ getAllPeople ~ error:', error);
@@ -198,9 +194,11 @@ export class PeopleService {
     }
   }
 
-  async getAbsentList() {
+  async getAbsentList(recordPerPage: number, page: number) {
     try {
-      return await this.temporaryAbsentRepository.find({
+      return await this.temporaryAbsentRepository.findAndCount({
+        take: recordPerPage,
+        skip: (page - 1) * recordPerPage,
         relations: { people: true },
       });
     } catch (error) {

@@ -1,9 +1,8 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { BasePeopleInfo } from './register-residence.dto';
-import { IsInt, IsOptional, IsPositive, Min } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsPositive, Min } from 'class-validator';
 
-export class GetPeopleQueryDto extends PartialType(BasePeopleInfo) {
+export class PaginationQuery {
   @ApiProperty({ description: 'Số hiệu trang', minimum: 1, example: 1 })
   @IsOptional()
   @Min(1)

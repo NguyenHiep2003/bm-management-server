@@ -23,6 +23,7 @@ import {
 } from 'src/shared/custom/fail-result.custom';
 import { GetPeopleQueryDto } from './dto/get-people-query.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQuery } from 'src/shared/custom/pagination.query';
 
 @ApiTags('people')
 @ApiBearerAuth()
@@ -111,9 +112,14 @@ export class PeopleController {
 
   @ApiOperation({ summary: 'Lấy danh sách các nhân khẩu tạm vắng' })
   @Get('absentList')
-  async getAbsentList() {
+  async getAbsentList(@Query() query: PaginationQuery) {
     try {
-      return await this.peopleService.getAbsentList();
+      const [absentList, totalRecord] = await this.peopleService.getAbsentList(
+        query.recordPerPage,
+        query.page,
+      );
+      const totalPage = Math.ceil(totalRecord / query.recordPerPage);
+      return { totalRecord, totalPage, absentList };
     } catch (error) {
       throw error;
     }
@@ -166,11 +172,14 @@ export class PeopleController {
       const { page, recordPerPage } = query;
       delete query.page;
       delete query.recordPerPage;
-      return this.peopleService.getAllPeopleWithFilter(
-        page,
-        recordPerPage,
-        query as PeopleFilter,
-      );
+      const [peopleList, totalRecord] =
+        await this.peopleService.getAllPeopleWithFilter(
+          page,
+          recordPerPage,
+          query as PeopleFilter,
+        );
+      const totalPage = Math.ceil(totalRecord / recordPerPage);
+      return { totalRecord, totalPage, peopleList };
     } catch (error) {
       throw error;
     }

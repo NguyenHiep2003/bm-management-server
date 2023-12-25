@@ -143,7 +143,7 @@ export class FeeService {
     try {
       if (status[0] == undefined)
         status = [BillStatus.DEBT, BillStatus.HAVE_PAID];
-      const bill = await this.billRepository
+      const bills = await this.billRepository
         .createQueryBuilder('bill')
         .select([
           'bill.apartmentId',
@@ -164,7 +164,7 @@ export class FeeService {
         .andWhere('bill.month = :month', { month })
         .andWhere('bill.year = :year', { year })
         .getRawMany();
-      return bill;
+      return bills;
     } catch (error) {
       console.log('🚀 ~ FeeService ~ getSummaryOfPayment ~ error:', error);
       throw error;

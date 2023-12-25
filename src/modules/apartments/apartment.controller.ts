@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApartmentService } from './apartment.service';
@@ -18,6 +19,7 @@ import { RolesDecor } from 'src/shared/decorators/roles.decorator';
 import { Role } from 'src/utils/enums/attribute/role';
 import { EntityNotFound } from 'src/shared/custom/fail-result.custom';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQuery } from 'src/shared/custom/pagination.query';
 
 @ApiTags('apartments')
 @ApiBearerAuth()
@@ -41,15 +43,24 @@ export class ApartmentController {
       throw error;
     }
   }
+
   @ApiOperation({ summary: 'Lấy danh sách tất cả các hộ' })
   @Get()
-  async getAllApartment() {
+  async getAllApartment(@Query() query: PaginationQuery) {
     try {
-      return await this.apartmentService.getDetailsAllApartments();
+      const { page, recordPerPage } = query;
+      const [apartmentList, totalRecord] =
+        await this.apartmentService.getDetailsAllApartments(
+          page,
+          recordPerPage,
+        );
+      const totalPage = Math.ceil(totalRecord / recordPerPage);
+      return { totalRecord, totalPage, apartmentList };
     } catch (error) {
       throw error;
     }
   }
+
   @ApiOperation({ summary: 'Thay đổi chủ sở hữu' })
   @Patch('/:apartmentId/owner')
   async updateOwner(

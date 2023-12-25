@@ -23,6 +23,7 @@ import { AddPaymentDto } from './dto/add-payment.dto';
 import { CreateFail, FailResult } from 'src/shared/custom/fail-result.custom';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQuery } from 'src/shared/custom/pagination.query';
 
 @ApiTags('fee')
 @ApiBearerAuth()
@@ -65,9 +66,20 @@ export class FeeController {
 
   @ApiOperation({ summary: 'Lấy danh sách tất cả các hóa đơn đang bị nợ' })
   @Get('bills/dept')
-  async getAllDept() {
+  async getAllDept(@Query() query: PaginationQuery) {
     try {
-      return await this.feeService.getAllDebt();
+      const deptList = await this.feeService.getAllDebt();
+      const { recordPerPage, page } = query;
+      const totalRecord = deptList.length;
+      const totalPage = Math.ceil(totalRecord / recordPerPage);
+      return {
+        totalRecord,
+        totalPage,
+        deptList: deptList.slice(
+          (page - 1) * recordPerPage,
+          page * recordPerPage,
+        ),
+      };
     } catch (error) {
       throw error;
     }
@@ -98,10 +110,22 @@ export class FeeController {
       'Lấy danh sách các hóa đơn theo tháng, năm và có thể lọc theo trạng thái nợ hay đã đóng',
   })
   @Get('bills')
-  async getAllPayment(@Query() filter: GetSummaryPaymentDto) {
+  async getAllPayment(@Query() filterAndPagination: GetSummaryPaymentDto) {
     try {
-      const { month, year, status } = filter;
-      return await this.feeService.getSummaryOfPayment(month, year, [status]);
+      const { month, year, status, recordPerPage, page } = filterAndPagination;
+      const bills = await this.feeService.getSummaryOfPayment(month, year, [
+        status,
+      ]);
+      const totalRecord = bills.length;
+      const totalPage = Math.ceil(totalRecord / recordPerPage);
+      return {
+        totalRecord,
+        totalPage,
+        paymentList: bills.slice(
+          (page - 1) * recordPerPage,
+          page * recordPerPage,
+        ),
+      };
     } catch (error) {
       throw error;
     }

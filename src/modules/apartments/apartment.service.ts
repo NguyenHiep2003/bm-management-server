@@ -45,10 +45,12 @@ export class ApartmentService {
       throw error;
     }
   }
-  async getDetailsAllApartments() {
+  async getDetailsAllApartments(page: number, recordPerPage: number) {
     try {
-      return await this.apartmentRepository.find({
+      return await this.apartmentRepository.findAndCount({
         relations: { owner: true },
+        take: recordPerPage,
+        skip: (page - 1) * recordPerPage,
       });
     } catch (error) {
       console.log(
