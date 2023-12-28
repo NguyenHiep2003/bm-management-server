@@ -4,6 +4,7 @@ import { Gender } from 'src/utils/enums/attribute/gender';
 import { Apartment } from 'src/modules/apartments/entities/apartment.entity';
 import { ResidencyStatus } from 'src/utils/enums/attribute/residency-status';
 import { TemporaryAbsent } from './temporary-absent.entity';
+import { CharityFund } from 'src/modules/charity/entities/charity-fund.entity';
 
 @Entity()
 export class People extends BaseEntity {
@@ -57,4 +58,6 @@ export class People extends BaseEntity {
   relationWithHouseholder: string;
 
   temporaryAbsent: TemporaryAbsent[];
+
+  charityFund: CharityFund[];
 }

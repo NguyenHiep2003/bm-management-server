@@ -18,7 +18,7 @@ export const enum ErrorMessage {
   HOUSEHOLD_NOT_FOUND = 'Hộ gia đình không tồn tại',
   CANNOT_DELETE_HOUSEHOLDER_THIS_WAY = 'Không thể xóa chủ hộ, thay vào đó hãy xóa hộ gia đình',
   BILL_EXIST = 'Hóa đơn tháng này đã được tạo',
-  EXPIRED_FEE = 'Phí đã quá hạn thu',
+  EXPIRED_FEE_OR_TOO_EARLY_TO_DONATE = 'Phí đã quá hạn thu hoặc chưa đến ngày thu',
   BILL_NOT_FOUND = 'Không có hóa đơn',
   BILL_HAVE_BEEN_PAID = 'Hóa đơn đã được thanh toán trước đó',
   MONEY_NOT_SUITABLE = 'Số tiền nộp không phù hợp',

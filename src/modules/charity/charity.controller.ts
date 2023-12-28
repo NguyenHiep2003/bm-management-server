@@ -55,11 +55,10 @@ export class CharityController {
     @Body() data: AddDonateDto,
   ) {
     try {
-      const { donatorName, amount, apartmentId } = data;
+      const { peopleId, amount } = data;
       return await this.charityService.addDonate(
         optionalFeeId,
-        donatorName,
-        apartmentId,
+        peopleId,
         amount,
       );
     } catch (error) {

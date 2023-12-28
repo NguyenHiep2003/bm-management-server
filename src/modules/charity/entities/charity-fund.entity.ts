@@ -7,10 +7,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { OptionalFee } from './optional-fee.entity';
+import { People } from 'src/modules/people/entities/people.entity';
 
 @Entity()
 export class CharityFund {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @ManyToOne(() => OptionalFee, (optionalFee) => optionalFee.charityFund)
@@ -23,11 +24,12 @@ export class CharityFund {
   @Column()
   optionalFeeId: string;
 
-  @Column()
-  apartmentId: string;
+  @ManyToOne(() => People, (people) => people.charityFund)
+  @JoinColumn({ name: 'peopleId' })
+  people: People;
 
   @Column()
-  donatorName: string;
+  peopleId: string;
 
   @Column()
   amount: number;

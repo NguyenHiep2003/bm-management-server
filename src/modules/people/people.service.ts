@@ -20,7 +20,7 @@ export class PeopleFilter extends PartialType(BasePeopleInfo) {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  apartmentId?: string;
+  apartmentId: string;
 }
 @Injectable()
 export class PeopleService {
@@ -95,7 +95,10 @@ export class PeopleService {
         skip: (page - 1) * recordPerPage,
       });
     } catch (error) {
-      console.log('🚀 ~ PeopleService ~ getAllPeople ~ error:', error);
+      console.log(
+        '🚀 ~ PeopleService ~ getAllPeopleWithFilter ~ error:',
+        error,
+      );
       throw error;
     }
   }
