@@ -22,7 +22,7 @@ export class Bill {
   @PrimaryColumn()
   apartmentId: string;
 
-  @PrimaryColumn({ default: new Date().getMonth() })
+  @PrimaryColumn({ default: new Date().getMonth() + 1 })
   month: number;
 
   @PrimaryColumn({ default: new Date().getFullYear() })

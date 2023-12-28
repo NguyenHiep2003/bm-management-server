@@ -60,7 +60,10 @@ export class FeeService {
   async createBills() {
     try {
       const existBill = await this.billRepository.findOne({
-        where: { month: new Date().getMonth(), year: new Date().getFullYear() },
+        where: {
+          month: new Date().getMonth() + 1,
+          year: new Date().getFullYear(),
+        },
       });
       if (existBill) throw new CreateFail(ErrorMessage.BILL_EXIST);
       const bills = await this.feeRepository

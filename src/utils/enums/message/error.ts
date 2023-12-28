@@ -22,4 +22,5 @@ export const enum ErrorMessage {
   BILL_NOT_FOUND = 'Không có hóa đơn',
   BILL_HAVE_BEEN_PAID = 'Hóa đơn đã được thanh toán trước đó',
   MONEY_NOT_SUITABLE = 'Số tiền nộp không phù hợp',
+  BAD_REQUEST = 'Thông tin cung cấp không chính xác',
 }

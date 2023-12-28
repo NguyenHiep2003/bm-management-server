@@ -24,6 +24,7 @@ import { TaskModule } from './modules/tasks/task.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import mail from './config/mail';
 import { appProvider } from './app.provider';
+import { GuestModule } from './modules/guest/guest.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { appProvider } from './app.provider';
       { path: 'api/v1/people', module: PeopleModule },
       { path: 'api/v1/fee', module: FeeModule },
       { path: 'api/v1/charity', module: CharityModule },
+      { path: 'api/v1/guest', module: GuestModule },
     ]),
     ScheduleModule.forRoot(),
     TaskModule,
@@ -71,6 +73,7 @@ import { appProvider } from './app.provider';
     ApartmentModule,
     FeeModule,
     CharityModule,
+    GuestModule,
   ],
   controllers: [],
   providers: appProvider,

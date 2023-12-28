@@ -72,6 +72,17 @@ export class PeopleService {
     }
   }
 
+  async getOnePeopleWithFilter(filter?: PeopleFilter) {
+    try {
+      return await this.peopleRepository.findOne({ where: filter });
+    } catch (error) {
+      console.log(
+        '🚀 ~ PeopleService ~ getOnePeopleWithFilter ~ error:',
+        error,
+      );
+    }
+  }
+
   async getAllPeopleWithFilter(
     page: number,
     recordPerPage: number,
