@@ -75,7 +75,7 @@ export class CharityService {
           'people.name AS donator',
           'people.apartmentId as apartmentId',
           'people.citizenId as citizenId',
-          'people.dateOfBirth as dateOfBirth',
+          'people.id as id'
         ])
         .addSelect('SUM(fund.amount)', 'total')
         .groupBy('people.id')
