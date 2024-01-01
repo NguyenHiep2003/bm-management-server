@@ -11,7 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { PeopleFilter, PeopleService } from './people.service';
+import { CreatePeople, PeopleFilter, PeopleService } from './people.service';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
 import { RegisterTemporaryAbsentDto } from './dto/register-temporary-absent.dto';
@@ -24,6 +24,7 @@ import {
 import { GetPeopleQueryDto } from './dto/get-people-query.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
+import { RelationType } from 'src/utils/enums/attribute/householder';
 
 @ApiTags('people')
 @ApiBearerAuth()
@@ -34,47 +35,27 @@ export class PeopleController {
   @Post()
   async registerResidence(@Body() data: RegisterResidenceDto) {
     try {
-      const { apartmentId, status } = data;
-      let householder: unknown, others: unknown[];
-      switch (status) {
-        case ResidencyStatus.PERMANENT_RESIDENCE: {
-          householder = data.permanentRegister.householder;
-          others = data.permanentRegister.others;
-          break;
-        }
-        case ResidencyStatus.TEMPORARY_RESIDENCE: {
-          householder = data.temporaryRegister.householder;
-          others = data.temporaryRegister.others;
-          break;
-        }
-        default:
-          throw new BadRequestException();
-      }
-      const createNewHousehold = householder ? true : false;
-      const household =
-        await this.peopleService.getHouseholdWithId(apartmentId);
-      if (createNewHousehold) {
-        if (household.length !== 0)
-          throw new BadRequestException(ErrorMessage.CANT_REGISTER_HOUSEHOLDER);
-        const allMember = others ? [householder, ...others] : [householder];
-        const newHousehold = await this.peopleService.createHousehold(
-          apartmentId,
-          allMember,
-        );
-        if (!newHousehold)
-          throw new ConflictException(ErrorMessage.APARTMENT_NOT_FOUND);
+      const { apartmentId, isCreateHousehold } = data;
+      delete data.isCreateHousehold;
+      const checkExistHousehold =
+        await this.peopleService.checkExistHousehold(apartmentId);
+      if (isCreateHousehold) {
+        if (checkExistHousehold)
+          throw new ConflictException(ErrorMessage.CANT_REGISTER_HOUSEHOLDER);
+        const householder: CreatePeople = {
+          ...data,
+          relationWithHouseholder: RelationType.HOUSEHOLDER,
+        };
+        await this.peopleService.savePeople(householder);
       } else {
-        if (household.length === 0)
+        if (!checkExistHousehold)
           throw new BadRequestException(ErrorMessage.HOUSEHOLD_NOT_FOUND);
-        const newHousehold = await this.peopleService.addPeopleToHousehold(
-          apartmentId,
-          others,
-        );
-        if (!newHousehold)
-          throw new ConflictException(ErrorMessage.APARTMENT_NOT_FOUND);
+        await this.peopleService.savePeople(data);
       }
       return;
     } catch (error) {
+      if (error instanceof EntityNotFound)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }

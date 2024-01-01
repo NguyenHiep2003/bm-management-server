@@ -33,7 +33,7 @@ export class People extends BaseEntity {
   email: string;
 
   @Column()
-  homeTown: string;
+  hometown: string;
 
   @Column()
   permanentAddress: string;

@@ -14,7 +14,10 @@ import {
   FailResult,
   UpdateFail,
 } from 'src/shared/custom/fail-result.custom';
-import { BasePeopleInfo } from './dto/register-residence.dto';
+import {
+  BasePeopleInfo,
+  RegisterResidenceDto,
+} from './dto/register-residence.dto';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export class PeopleFilter extends PartialType(BasePeopleInfo) {
   @IsOptional()
@@ -22,6 +25,7 @@ export class PeopleFilter extends PartialType(BasePeopleInfo) {
   @IsNotEmpty()
   apartmentId: string;
 }
+export type CreatePeople = Omit<RegisterResidenceDto, 'isCreateHousehold'>;
 @Injectable()
 export class PeopleService {
   constructor(
@@ -36,6 +40,7 @@ export class PeopleService {
       const household = await this.peopleRepository
         .createQueryBuilder('people')
         .where('people.apartmentId = :apartmentId ', { apartmentId })
+        .orderBy('people.createdAt', 'ASC')
         .getMany();
       return household;
     } catch (error) {
@@ -43,6 +48,33 @@ export class PeopleService {
       throw error;
     }
   }
+
+  async checkExistHousehold(apartmentId: string) {
+    try {
+      const apartment =
+        await this.apartmentService.findApartmentWithId(apartmentId);
+      if (!apartment)
+        throw new EntityNotFound(ErrorMessage.APARTMENT_NOT_FOUND);
+      const people = await this.peopleRepository.findOne({
+        where: { apartmentId },
+      });
+      return people ? true : false;
+    } catch (error) {
+      if (error instanceof EntityNotFound) throw error;
+      console.log('🚀 ~ PeopleService ~ checkExistHousehold ~ error:', error);
+      throw error;
+    }
+  }
+
+  async savePeople(people: CreatePeople) {
+    try {
+      return await this.peopleRepository.save(people);
+    } catch (error) {
+      console.log('🚀 ~ PeopleService ~ savePeople ~ error:', error);
+      throw error;
+    }
+  }
+
   async createHousehold(apartmentId: string, people: any) {
     try {
       const apartment =
