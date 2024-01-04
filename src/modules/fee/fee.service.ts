@@ -166,6 +166,7 @@ export class FeeService {
         .where('bill.status in (:...status)', { status })
         .andWhere('bill.month = :month', { month })
         .andWhere('bill.year = :year', { year })
+        .addOrderBy('bill.apartmentId', 'ASC')
         .getRawMany();
       return bills;
     } catch (error) {
@@ -232,6 +233,7 @@ export class FeeService {
         .addGroupBy('bill.status')
         .addGroupBy('bill.payDay')
         .addGroupBy('bill.payerName')
+        .addOrderBy('bill.apartmentId', 'ASC')
         .where('bill.status = :status', { status: BillStatus.DEBT })
         .getRawMany();
     } catch (error) {

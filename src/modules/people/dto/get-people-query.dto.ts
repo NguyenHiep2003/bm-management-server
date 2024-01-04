@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { BasePeopleInfo } from './register-residence.dto';
 import {
   IsInt,
@@ -28,7 +28,7 @@ export class GetPeopleQueryDto extends PartialType(BasePeopleInfo) {
   @Type(() => Number)
   recordPerPage: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Mã căn hộ',
     example: '101',
   })

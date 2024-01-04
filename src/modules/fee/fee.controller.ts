@@ -133,7 +133,7 @@ export class FeeController {
 
   @ApiOperation({
     summary:
-      'Tạo hóa đơn của tháng hiện tại, thông thường không cần API này do đã cài đặt lập lịch sắn trên server để tạo tự động hóa đơn',
+      'Tạo hóa đơn của tháng hiện tại, thông thường không cần API này do đã cài đặt lập lịch sẵn trên server để tạo tự động hóa đơn',
   })
   @Post('bills')
   async createBills() {

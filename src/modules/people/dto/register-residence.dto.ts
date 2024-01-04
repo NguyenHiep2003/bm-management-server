@@ -80,7 +80,7 @@ export class BasePeopleInfo {
   })
   @IsString()
   @IsNotEmpty()
-  homeTown: string;
+  hometown: string;
 
   @ApiProperty({
     description: 'Địa chỉ thường trú',

@@ -122,6 +122,7 @@ export class PeopleService {
   ) {
     try {
       return await this.peopleRepository.findAndCount({
+        order: { createdAt: 'ASC' },
         where: filter,
         take: recordPerPage,
         skip: (page - 1) * recordPerPage,
