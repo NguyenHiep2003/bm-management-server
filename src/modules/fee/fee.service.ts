@@ -116,7 +116,8 @@ export class FeeService {
     try {
       const bill = await this.billRepository
         .createQueryBuilder('bill')
-        .innerJoin('bill.fee', 'fee')
+        .withDeleted()
+        .leftJoin('bill.fee', 'fee')
         .select([
           'bill.apartmentId',
           'bill.month',
