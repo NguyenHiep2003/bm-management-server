@@ -5,10 +5,11 @@ import { PeopleController } from './people.controller';
 import { PeopleService } from './people.service';
 import { ApartmentModule } from '../apartments/apartment.module';
 import { TemporaryAbsent } from './entities/temporary-absent.entity';
+import { User } from '../users/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([People, TemporaryAbsent]),
+    TypeOrmModule.forFeature([People, TemporaryAbsent, User]),
     ApartmentModule,
   ],
   controllers: [PeopleController],

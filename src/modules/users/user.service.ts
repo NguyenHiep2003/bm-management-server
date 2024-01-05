@@ -84,7 +84,7 @@ export class UserService {
 
   async deleteUser(id: string) {
     try {
-      return await this.userRepository.softDelete({ id });
+      return await this.userRepository.delete({ id });
     } catch (error) {
       console.log('🚀 ~ UserService ~ deleteAccount ~ error:', error);
       throw error;

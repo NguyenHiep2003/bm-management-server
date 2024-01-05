@@ -19,6 +19,7 @@ import {
   RegisterResidenceDto,
 } from './dto/register-residence.dto';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { User } from '../users/user.entity';
 export class PeopleFilter extends PartialType(BasePeopleInfo) {
   @IsOptional()
   @IsString()
@@ -34,6 +35,8 @@ export class PeopleService {
     private readonly apartmentService: ApartmentService,
     @InjectRepository(TemporaryAbsent)
     private readonly temporaryAbsentRepository: Repository<TemporaryAbsent>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
   async getHouseholdWithId(apartmentId: string) {
     try {
@@ -150,6 +153,7 @@ export class PeopleService {
       const people = await this.peopleRepository.findOne({ where: { id } });
       if (people.relationWithHouseholder == RelationType.HOUSEHOLDER)
         return null;
+      await this.userRepository.delete({ peopleId: id });
       return await this.peopleRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deletePeopleById ~ error:', error);

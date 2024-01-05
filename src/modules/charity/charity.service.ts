@@ -70,7 +70,8 @@ export class CharityService {
     try {
       const data = await this.charityFundRepository
         .createQueryBuilder('fund')
-        .innerJoin('fund.people', 'people')
+        .withDeleted()
+        .leftJoin('fund.people', 'people')
         .select([
           'people.name AS donator',
           'people.apartmentId as apartmentId',
