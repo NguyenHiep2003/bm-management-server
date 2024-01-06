@@ -18,7 +18,7 @@ export class AuthService {
         user.password,
       );
       if (!isCorrectPass) return;
-      return user.id;
+      return { id: user.id, role: user.role };
     } catch (error) {
       console.log('🚀 ~ AuthService ~ validateUser ~ error:', error);
       throw error;

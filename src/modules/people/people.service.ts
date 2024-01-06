@@ -154,6 +154,7 @@ export class PeopleService {
       if (people.relationWithHouseholder == RelationType.HOUSEHOLDER)
         return null;
       await this.userRepository.delete({ peopleId: id });
+      await this.temporaryAbsentRepository.delete({ peopleId: id });
       return await this.peopleRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deletePeopleById ~ error:', error);
@@ -248,6 +249,7 @@ export class PeopleService {
   async getAbsentList(recordPerPage: number, page: number) {
     try {
       return await this.temporaryAbsentRepository.findAndCount({
+        order: { createdAt: 'DESC' },
         take: recordPerPage,
         skip: (page - 1) * recordPerPage,
         relations: { people: true },

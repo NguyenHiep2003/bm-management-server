@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsDate,
   IsDefined,
+  IsEmail,
   IsEnum,
   IsIn,
   IsNotEmpty,
@@ -72,6 +73,7 @@ export class BasePeopleInfo {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @IsEmail()
   email: string;
 
   @ApiProperty({
