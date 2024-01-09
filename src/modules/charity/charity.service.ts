@@ -82,6 +82,7 @@ export class CharityService {
         .groupBy('people.id')
         // .addGroupBy('fund.apartmentId')
         .where('fund.optionalFeeId = :optionalFeeId', { optionalFeeId })
+        .orderBy('total', 'DESC')
         .getRawMany();
       let sum = 0;
       for (const record of data) {

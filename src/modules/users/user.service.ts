@@ -103,4 +103,28 @@ export class UserService {
       throw error;
     }
   }
+  async getBaseAdminInfo() {
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoin('user.people', 'people')
+        .select(['people.name', 'people.apartmentId', 'user.email'])
+        .where('user.role = :role', { role: 'Thành viên ban quản trị' })
+        .getMany();
+    } catch (error) {
+      console.log('🚀 ~ UserService ~ getBaseAdminInfo ~ error:', error);
+      throw error;
+    }
+  }
+  async getProfile(id: string) {
+    try {
+      return await this.userRepository.findOne({
+        where: { id },
+        relations: { people: true },
+      });
+    } catch (error) {
+      console.log('🚀 ~ UserService ~ getProfile ~ error:', error);
+      throw error;
+    }
+  }
 }
