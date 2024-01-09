@@ -96,13 +96,12 @@ export class BasePeopleInfo {
   @IsEnum(Gender)
   gender: Gender;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Nghề nghiệp',
     example: 'Sinh viên',
   })
   @IsOptional()
   @IsString()
-  @IsNotEmpty()
   career: string;
 }
 export class PermanentHouseHolderInfo extends OmitType(BasePeopleInfo, [
