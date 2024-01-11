@@ -120,17 +120,27 @@ export class FeeController {
       const totalRecord = bills.length;
       const totalPage = Math.ceil(totalRecord / recordPerPage);
       let totalPaid = 0;
-      for (const i of bills)
-        if (i.bill_status === BillStatus.HAVE_PAID) totalPaid++;
-      return {
-        totalRecord,
-        totalPage,
-        totalPaid,
-        paymentList: bills.slice(
-          (page - 1) * recordPerPage,
-          page * recordPerPage,
-        ),
-      };
+      if (!filterAndPagination.status) {
+        for (const i of bills)
+          if (i.bill_status === BillStatus.HAVE_PAID) totalPaid++;
+        return {
+          totalRecord,
+          totalPage,
+          totalPaid,
+          paymentList: bills.slice(
+            (page - 1) * recordPerPage,
+            page * recordPerPage,
+          ),
+        };
+      } else
+        return {
+          totalRecord,
+          totalPage,
+          paymentList: bills.slice(
+            (page - 1) * recordPerPage,
+            page * recordPerPage,
+          ),
+        };
     } catch (error) {
       throw error;
     }
