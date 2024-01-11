@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { People } from 'src/modules/people/entities/people.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { ApartmentService } from '../apartments/apartment.service';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
@@ -52,6 +52,23 @@ export class PeopleService {
     }
   }
 
+  async getHouseholderInApartmentId(apartmentId: string) {
+    try {
+      return await this.peopleRepository.findOne({
+        where: {
+          apartmentId,
+          relationWithHouseholder: RelationType.HOUSEHOLDER,
+        },
+      });
+    } catch (error) {
+      console.log(
+        '🚀 ~ PeopleService ~ getHouseholderInApartmentId ~ error:',
+        error,
+      );
+      throw error;
+    }
+  }
+
   async checkExistHousehold(apartmentId: string) {
     try {
       const apartment =
@@ -69,7 +86,16 @@ export class PeopleService {
     }
   }
 
-  async savePeople(people: CreatePeople) {
+  async saveOnePeople(people: CreatePeople) {
+    try {
+      return await this.peopleRepository.save(people);
+    } catch (error) {
+      console.log('🚀 ~ PeopleService ~ savePeople ~ error:', error);
+      throw error;
+    }
+  }
+
+  async saveManyPeople(...people: CreatePeople[]) {
     try {
       return await this.peopleRepository.save(people);
     } catch (error) {
@@ -173,6 +199,11 @@ export class PeopleService {
 
   async updateOne(id: string, data: UpdatePeopleInfoDto) {
     try {
+      if (data.relationWithHouseholder)
+        return await this.peopleRepository.update(
+          { id, relationWithHouseholder: Not(RelationType.HOUSEHOLDER) },
+          data,
+        );
       return await this.peopleRepository.update({ id }, data);
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ updateOne ~ error:', error);

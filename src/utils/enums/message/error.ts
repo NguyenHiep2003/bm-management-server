@@ -23,4 +23,5 @@ export const enum ErrorMessage {
   BILL_HAVE_BEEN_PAID = 'Hóa đơn đã được thanh toán trước đó',
   MONEY_NOT_SUITABLE = 'Số tiền nộp không phù hợp',
   BAD_REQUEST = 'Thông tin cung cấp không chính xác',
+  CANNOT_CHANGE_RELATION = 'Không thể thay đổi mối quan hệ với chủ hộ do không tìm thấy nhân khẩu hoặc người này đang là chủ hộ',
 }

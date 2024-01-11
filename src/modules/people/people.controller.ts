@@ -25,6 +25,7 @@ import { GetPeopleQueryDto } from './dto/get-people-query.dto';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
 import { RelationType } from 'src/utils/enums/attribute/householder';
+import { UpdateHouseholderDto } from './dto/update-householder.dto';
 
 @ApiTags('people')
 @ApiBearerAuth()
@@ -46,11 +47,11 @@ export class PeopleController {
           ...data,
           relationWithHouseholder: RelationType.HOUSEHOLDER,
         };
-        await this.peopleService.savePeople(householder);
+        await this.peopleService.saveOnePeople(householder);
       } else {
         if (!checkExistHousehold)
           throw new BadRequestException(ErrorMessage.HOUSEHOLD_NOT_FOUND);
-        await this.peopleService.savePeople(data);
+        await this.peopleService.saveOnePeople(data);
       }
       return;
     } catch (error) {
@@ -145,6 +146,31 @@ export class PeopleController {
   }
 
   @ApiOperation({
+    summary: 'Thay đổi chủ hộ của 1 hộ gia đình',
+  })
+  @Patch('household/:apartmentId')
+  async changeHouseholder(
+    @Param('apartmentId') apartmentId: string,
+    @Body() data: UpdateHouseholderDto,
+  ) {
+    try {
+      const newHouseholder = await this.peopleService.findPeopleById(
+        data.newHouseholderId,
+      );
+      if (newHouseholder.apartmentId !== apartmentId)
+        throw new BadRequestException(ErrorMessage.BAD_REQUEST);
+      newHouseholder.relationWithHouseholder = RelationType.HOUSEHOLDER;
+      const oldHouseholder =
+        await this.peopleService.getHouseholderInApartmentId(apartmentId);
+      oldHouseholder.relationWithHouseholder = data.newRelation;
+      await this.peopleService.saveManyPeople(newHouseholder, oldHouseholder);
+      return;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @ApiOperation({
     summary: 'Lấy danh sách các nhân khẩu, có hỗ trợ phân trang và lọc',
   })
   @Get()
@@ -189,7 +215,10 @@ export class PeopleController {
   @Patch(':id')
   async updateOne(@Param('id') id: string, @Body() data: UpdatePeopleInfoDto) {
     try {
-      return await this.peopleService.updateOne(id, data);
+      const res = await this.peopleService.updateOne(id, data);
+      if (res.affected === 0)
+        throw new BadRequestException(ErrorMessage.CANNOT_CHANGE_RELATION);
+      return;
     } catch (error) {
       throw error;
     }

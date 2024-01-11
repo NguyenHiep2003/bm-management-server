@@ -24,6 +24,7 @@ import { CreateFail, FailResult } from 'src/shared/custom/fail-result.custom';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
+import { BillStatus } from 'src/utils/enums/attribute/bill-status';
 
 @ApiTags('fee')
 @ApiBearerAuth()
@@ -65,8 +66,8 @@ export class FeeController {
   }
 
   @ApiOperation({ summary: 'Lấy danh sách tất cả các hóa đơn đang bị nợ' })
-  @Get('bills/dept')
-  async getAllDept(@Query() query: PaginationQuery) {
+  @Get('bills/debt')
+  async getAllDebt(@Query() query: PaginationQuery) {
     try {
       const deptList = await this.feeService.getAllDebt();
       const { recordPerPage, page } = query;
@@ -118,9 +119,13 @@ export class FeeController {
       ]);
       const totalRecord = bills.length;
       const totalPage = Math.ceil(totalRecord / recordPerPage);
+      let totalPaid = 0;
+      for (const i of bills)
+        if (i.bill_status === BillStatus.HAVE_PAID) totalPaid++;
       return {
         totalRecord,
         totalPage,
+        totalPaid,
         paymentList: bills.slice(
           (page - 1) * recordPerPage,
           page * recordPerPage,
