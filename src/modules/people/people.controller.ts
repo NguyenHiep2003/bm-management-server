@@ -193,6 +193,18 @@ export class PeopleController {
   }
 
   @ApiOperation({
+    summary: 'Lấy thông tin chi tiết 1 nhân khẩu bằng Id',
+  })
+  @Get(':id')
+  async getOne(@Param('id') id: string) {
+    try {
+      return await this.peopleService.findPeopleById(id);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  @ApiOperation({
     summary: 'Xóa một nhân khẩu (không thể xóa bằng cách này nếu đó là chủ hộ)',
   })
   @Delete(':id')
