@@ -25,6 +25,7 @@ import { ErrorMessage } from 'src/utils/enums/message/error';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
 import { BillStatus } from 'src/utils/enums/attribute/bill-status';
+import { UserDecor } from 'src/shared/decorators/user.decorator';
 
 @ApiTags('fee')
 @ApiBearerAuth()
@@ -37,6 +38,8 @@ export class FeeController {
   @Post()
   async addNewFee(@Body() data: CreateFeeDto) {
     try {
+      const fee = await this.feeService.getFeeByName(data.name);
+      if (fee) throw new ConflictException(ErrorMessage.FEE_EXIST);
       return await this.feeService.addFee(data);
     } catch (error) {
       throw error;
@@ -169,6 +172,7 @@ export class FeeController {
   async addPayment(
     @Param('apartmentId') apartmentId: string,
     @Body() data: AddPaymentDto,
+    @UserDecor('id') billCollectorId: string,
   ) {
     try {
       const { month, year, payMoney, payerName } = data;
@@ -178,6 +182,7 @@ export class FeeController {
         month,
         year,
         payerName,
+        billCollectorId,
       );
     } catch (error) {
       if (error instanceof FailResult)

@@ -15,11 +15,19 @@ import {
   FailResult,
   UpdateFail,
 } from 'src/shared/custom/fail-result.custom';
+import { User } from '../users/user.entity';
+import { Apartment } from '../apartments/entities/apartment.entity';
+import { FeeUnit } from 'src/utils/enums/attribute/fee-unit';
+import { Vehicle } from '../vehicles/vehicle.entity';
+import { FeeName } from 'src/utils/enums/attribute/fee-name';
+import { VehicleType } from 'src/utils/enums/attribute/vehicle-type';
+import { getRatio } from 'src/utils/getRatioOnDay';
 @Injectable()
 export class FeeService {
   constructor(
     @InjectRepository(Fee) private readonly feeRepository: Repository<Fee>,
     @InjectRepository(Bill) private readonly billRepository: Repository<Bill>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
   async addFee(data: CreateFeeDto) {
@@ -35,6 +43,15 @@ export class FeeService {
       return await this.feeRepository.find();
     } catch (error) {
       console.log('🚀 ~ FeeService ~ getAllFee ~ error:', error);
+      throw error;
+    }
+  }
+
+  async getFeeByName(name: FeeName) {
+    try {
+      return await this.feeRepository.findOne({ where: { name } });
+    } catch (error) {
+      console.log('🚀 ~ FeeService ~ getFeeByName ~ error:', error);
       throw error;
     }
   }
@@ -57,17 +74,42 @@ export class FeeService {
     }
   }
 
+  async checkExistBillCreatedByServer() {
+    try {
+      const date = new Date();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const existBill = await this.billRepository
+        .createQueryBuilder('bill')
+        .withDeleted()
+        .innerJoin('bill.fee', 'fee')
+        .where('fee.name = :service OR fee.name = :management', {
+          service: FeeName.SERVICE,
+          management: FeeName.MANAGEMENT,
+        })
+        .andWhere('month = :month', { month })
+        .andWhere('year =:year', { year })
+        .addSelect('fee.name')
+        .getOne();
+      return existBill ? true : false;
+    } catch (error) {
+      console.log(
+        '🚀 ~ FeeService ~ checkExistBillCreatedByServer ~ error:',
+        error,
+      );
+      throw error;
+    }
+  }
+
   async createBills() {
     try {
-      const existBill = await this.billRepository.findOne({
-        where: {
-          month: new Date().getMonth() + 1,
-          year: new Date().getFullYear(),
-        },
-      });
-      if (existBill) throw new CreateFail(ErrorMessage.BILL_EXIST);
-      const bills = await this.feeRepository
+      const isExistBillCreatedByServer =
+        await this.checkExistBillCreatedByServer();
+      if (isExistBillCreatedByServer)
+        throw new CreateFail(ErrorMessage.BILL_EXIST);
+      const billsBaseArea = await this.feeRepository
         .createQueryBuilder('fee')
+        // .withDeleted()
         .innerJoin(
           (subQuery: SelectQueryBuilder<People>) =>
             subQuery
@@ -82,11 +124,40 @@ export class FeeService {
           'apartment',
           '1 = 1',
         )
+        .where('fee.unit = :unit', { unit: FeeUnit.AREA })
         .select('apartment.apartment_id', 'apartmentId')
         .addSelect('fee.id', 'feeId')
-        .addSelect('apartment.area * fee.unitPrice', 'amount')
+        .addSelect('apartment.area * fee.price', 'amount')
         .getRawMany();
-      return await this.billRepository.save(bills);
+      const billsOnVehicle = await this.feeRepository
+        .createQueryBuilder('fee')
+        .innerJoin(
+          (subQuery: SelectQueryBuilder<Vehicle>) =>
+            subQuery
+              .select('vehicle.type', 'type')
+              .from(Vehicle, 'vehicle')
+              .innerJoin('vehicle.owner', 'owner')
+              .addSelect('owner.apartmentId', 'apartment_id'),
+          'vhc_apt',
+          '(vhc_apt.type = :motor AND fee.name = :motorFee) OR (vhc_apt.type = :car AND fee.name = :carFee)',
+          {
+            motor: VehicleType.MOTORBIKE,
+            motorFee: FeeName.MOTORBIKE,
+            car: VehicleType.CAR,
+            carFee: FeeName.CAR,
+          },
+        )
+        .where('fee.name in (:...name)', {
+          name: [FeeName.MOTORBIKE, FeeName.CAR],
+        })
+        .select('vhc_apt.apartment_id', 'apartmentId')
+        .addSelect('fee.id', 'feeId')
+        .addSelect('fee.price', 'amount')
+        .getRawMany();
+      return await this.billRepository.save([
+        ...billsBaseArea,
+        ...billsOnVehicle,
+      ]);
     } catch (error) {
       if (error instanceof CreateFail) throw error;
       console.log('🚀 ~ FeeService ~ createBill ~ error:', error);
@@ -94,11 +165,77 @@ export class FeeService {
     }
   }
 
-  async deleteBillAfterSixMonth() {
+  async createBillForNewVehicle(apartmentId: string, type: VehicleType) {
     try {
-      const expiredDate = new Date(
-        Date.now() - (1000 * 60 * 60 * 24 * 365) / 2,
+      const isExistBillCreatedByServer =
+        await this.checkExistBillCreatedByServer();
+      //Bill have not been created by server then wait
+      if (!isExistBillCreatedByServer) return;
+      const feeName = type == VehicleType.CAR ? FeeName.CAR : FeeName.MOTORBIKE;
+      const fee = await this.feeRepository.findOne({
+        where: { name: feeName },
+      });
+      const date = new Date().getDate();
+      const ratio = getRatio(date);
+      return await this.billRepository.save({
+        apartmentId,
+        feeId: fee.id,
+        amount: fee.price * ratio,
+      });
+    } catch (error) {
+      console.log('🚀 ~ FeeService ~ createBillForNewVehicle ~ error:', error);
+      throw error;
+    }
+  }
+
+  async createBillForNewHousehold(apartmentId: string, ratio: number) {
+    try {
+      const date = new Date();
+      const isExistBillCreatedByServer =
+        await this.checkExistBillCreatedByServer();
+      //Bill have not been created by server then wait
+      if (!isExistBillCreatedByServer) return;
+      const existBillOfApartment = await this.billRepository.findOne({
+        where: {
+          apartmentId,
+          month: date.getMonth() + 1,
+          year: date.getFullYear(),
+        },
+      });
+      //Bill of this apartment have been created this month
+      if (existBillOfApartment) return;
+      const bill = await this.feeRepository
+        .createQueryBuilder('fee')
+        .innerJoin(
+          (subQuery: SelectQueryBuilder<Apartment>) =>
+            subQuery
+              .select('apartment.apartmentId', 'apartment_id')
+              .from(Apartment, 'apartment')
+              .where('apartment.apartmentId = :apartmentId', {
+                apartmentId,
+              })
+              .addSelect('apartment.area', 'area'),
+          'apartment',
+          '1 = 1',
+        )
+        .where('fee.unit = :unit', { unit: FeeUnit.AREA })
+        .select('apartment.apartment_id', 'apartmentId')
+        .addSelect('fee.id', 'feeId')
+        .addSelect(`apartment.area * fee.price * ${ratio}`, 'amount')
+        .getRawMany();
+      return await this.billRepository.save(bill);
+    } catch (error) {
+      console.log(
+        '🚀 ~ FeeService ~ createBillForNewHousehold ~ error:',
+        error,
       );
+      throw error;
+    }
+  }
+
+  async deleteBillAfter2Year() {
+    try {
+      const expiredDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 365 * 2);
       return await this.billRepository.delete({
         createdAt: LessThan(expiredDate),
         status: BillStatus.HAVE_PAID,
@@ -119,6 +256,7 @@ export class FeeService {
         .withDeleted()
         .leftJoin('bill.fee', 'fee')
         .select([
+          'bill.id',
           'bill.apartmentId',
           'bill.month',
           'bill.year',
@@ -127,6 +265,7 @@ export class FeeService {
           'bill.payDay',
           'bill.amount',
           'bill.payerName',
+          'bill.billCollector',
         ])
         .where('bill.apartmentId = :apartmentId', { apartmentId })
         .andWhere('bill.month = :month', { month })
@@ -134,7 +273,7 @@ export class FeeService {
         .getMany();
       let total = 0;
       for (const record of bill) {
-        total += record.amount;
+        if (record.status == BillStatus.DEBT) total += record.amount;
       }
       return { record: bill, total };
     } catch (error) {
@@ -156,6 +295,7 @@ export class FeeService {
           'bill.status',
           'bill.payDay',
           'bill.payerName',
+          'bill.billCollector',
         ])
         .addSelect('sum(bill.amount)', 'total')
         .groupBy('bill.apartmentId')
@@ -164,6 +304,7 @@ export class FeeService {
         .addGroupBy('bill.status')
         .addGroupBy('bill.payDay')
         .addGroupBy('bill.payerName')
+        .addGroupBy('bill.billCollector')
         .where('bill.status in (:...status)', { status })
         .andWhere('bill.month = :month', { month })
         .andWhere('bill.year = :year', { year })
@@ -182,6 +323,7 @@ export class FeeService {
     month: number,
     year: number,
     payerName: string,
+    billCollectorId: string,
   ) {
     try {
       const totalFee = await this.billRepository
@@ -194,7 +336,7 @@ export class FeeService {
         .addGroupBy('bill.status')
         .addGroupBy('bill.payDay')
         .addGroupBy('bill.payerName')
-        // .where('bill.status = :status', { status: BillStatus.DEBT })
+        .where('bill.status = :status', { status: BillStatus.DEBT })
         .andWhere('bill.apartmentId = :apartmentId', { apartmentId })
         .andWhere('bill.month = :month', { month })
         .andWhere('bill.year = :year', { year })
@@ -204,9 +346,18 @@ export class FeeService {
         throw new UpdateFail(ErrorMessage.BILL_HAVE_BEEN_PAID);
       if (totalFee.total != payMoney)
         throw new UpdateFail(ErrorMessage.MONEY_NOT_SUITABLE);
+      const billCollector = await this.userRepository.findOne({
+        where: { id: billCollectorId },
+        relations: { people: true },
+      });
       return await this.billRepository.update(
         { apartmentId, month, year },
-        { payDay: new Date(), payerName, status: BillStatus.HAVE_PAID },
+        {
+          payDay: new Date(),
+          payerName,
+          status: BillStatus.HAVE_PAID,
+          billCollector: billCollector.people.name,
+        },
       );
     } catch (error) {
       if (error instanceof FailResult) throw error;
@@ -239,6 +390,18 @@ export class FeeService {
         .getRawMany();
     } catch (error) {
       console.log('🚀 ~ FeeService ~ getAllDebt ~ error:', error);
+      throw error;
+    }
+  }
+
+  async checkExistDebtBill(apartmentId: string) {
+    try {
+      const debtBill = await this.billRepository.findOne({
+        where: { apartmentId, status: BillStatus.DEBT },
+      });
+      return debtBill ? true : false;
+    } catch (error) {
+      console.log('🚀 ~ FeeService ~ checkExistDebtBell ~ error:', error);
       throw error;
     }
   }

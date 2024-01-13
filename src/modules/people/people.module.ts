@@ -6,11 +6,14 @@ import { PeopleService } from './people.service';
 import { ApartmentModule } from '../apartments/apartment.module';
 import { TemporaryAbsent } from './entities/temporary-absent.entity';
 import { User } from '../users/user.entity';
+import { FeeModule } from '../fee/fee.module';
+import { Vehicle } from '../vehicles/vehicle.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([People, TemporaryAbsent, User]),
+    TypeOrmModule.forFeature([People, TemporaryAbsent, User, Vehicle]),
     ApartmentModule,
+    FeeModule,
   ],
   controllers: [PeopleController],
   providers: [PeopleService],

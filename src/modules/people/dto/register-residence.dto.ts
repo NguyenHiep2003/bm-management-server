@@ -13,6 +13,7 @@ import {
   IsNotEmpty,
   IsNotEmptyObject,
   IsOptional,
+  IsPhoneNumber,
   IsString,
   NotEquals,
   ValidateIf,
@@ -311,6 +312,7 @@ export class RegisterResidenceDto {
   })
   @IsOptional()
   @IsString()
+  @IsPhoneNumber('VN')
   @IsNotEmpty()
   phoneNumber: string;
 

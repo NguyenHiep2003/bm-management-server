@@ -1,13 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsPositive, IsString } from 'class-validator';
+import { IsEnum, IsPositive } from 'class-validator';
+import { FeeName } from 'src/utils/enums/attribute/fee-name';
+import { FeeUnit } from 'src/utils/enums/attribute/fee-unit';
 export class CreateFeeDto {
   @ApiProperty({
     description: 'Tên khoản phí',
-    example: 'Phí dịch vụ',
+    example: FeeName.MOTORBIKE,
+    enum: FeeName,
   })
-  @IsString()
-  @IsNotEmpty()
-  name: string;
+  @IsEnum(FeeName)
+  name: FeeName;
 
   @ApiProperty({
     description: 'Đơn giá',
@@ -15,5 +17,13 @@ export class CreateFeeDto {
     minimum: 1,
   })
   @IsPositive()
-  unitPrice: number;
+  price: number;
+
+  @ApiProperty({
+    description: 'Đơn vị',
+    enum: FeeUnit,
+    example: FeeUnit.MONTH,
+  })
+  @IsEnum(FeeUnit)
+  unit: FeeUnit;
 }

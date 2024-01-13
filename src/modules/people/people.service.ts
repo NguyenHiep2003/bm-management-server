@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { People } from 'src/modules/people/entities/people.entity';
-import { Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { ApartmentService } from '../apartments/apartment.service';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { UpdatePeopleInfoDto } from './dto/update-people.dto';
@@ -20,11 +20,12 @@ import {
 } from './dto/register-residence.dto';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { User } from '../users/user.entity';
+import { Vehicle } from '../vehicles/vehicle.entity';
 export class PeopleFilter extends PartialType(BasePeopleInfo) {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
-  apartmentId: string;
+  apartmentId?: string;
 }
 export type CreatePeople = Omit<RegisterResidenceDto, 'isCreateHousehold'>;
 @Injectable()
@@ -37,6 +38,8 @@ export class PeopleService {
     private readonly temporaryAbsentRepository: Repository<TemporaryAbsent>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Vehicle)
+    private readonly vehicleRepository: Repository<Vehicle>,
   ) {}
   async getHouseholdWithId(apartmentId: string) {
     try {
@@ -181,6 +184,7 @@ export class PeopleService {
         return null;
       await this.userRepository.delete({ peopleId: id });
       await this.temporaryAbsentRepository.delete({ peopleId: id });
+      await this.vehicleRepository.delete({ ownerId: id });
       return await this.peopleRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deletePeopleById ~ error:', error);
@@ -190,6 +194,19 @@ export class PeopleService {
 
   async deleteHousehold(apartmentId: string) {
     try {
+      const peopleList = await this.peopleRepository.find({
+        where: { apartmentId },
+        select: ['id'],
+      });
+      const peopleIdList = [];
+      for (const i of peopleList) peopleIdList.push(i.id);
+      await this.userRepository.delete({
+        peopleId: In(peopleIdList),
+      });
+      await this.temporaryAbsentRepository.delete({
+        peopleId: In(peopleIdList),
+      });
+      await this.vehicleRepository.delete({ ownerId: In(peopleIdList) });
       return await this.peopleRepository.softDelete({ apartmentId });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deleteHousehold ~ error:', error);

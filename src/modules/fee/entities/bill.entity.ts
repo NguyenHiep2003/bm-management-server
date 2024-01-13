@@ -5,13 +5,16 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Fee } from './fee.entity';
 import { BillStatus } from 'src/utils/enums/attribute/bill-status';
 
 @Entity()
 export class Bill {
+  @PrimaryGeneratedColumn()
+  id: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -19,20 +22,20 @@ export class Bill {
   @JoinColumn({ name: 'apartmentId' })
   apartment: Apartment;
 
-  @PrimaryColumn()
+  @Column()
   apartmentId: string;
 
-  @PrimaryColumn({ default: new Date().getMonth() + 1 })
+  @Column({ default: new Date().getMonth() + 1 })
   month: number;
 
-  @PrimaryColumn({ default: new Date().getFullYear() })
+  @Column({ default: new Date().getFullYear() })
   year: number;
 
   @ManyToOne(() => Fee, (fee) => fee.bills)
   @JoinColumn({ name: 'feeId' })
   fee: Fee;
 
-  @PrimaryColumn()
+  @Column()
   feeId: string;
 
   @Column()
@@ -46,4 +49,7 @@ export class Bill {
 
   @Column({ default: null })
   payerName: string;
+
+  @Column({ nullable: true })
+  billCollector: string;
 }
