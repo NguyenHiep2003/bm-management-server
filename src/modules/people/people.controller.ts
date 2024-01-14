@@ -26,18 +26,31 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
 import { RelationType } from 'src/utils/enums/attribute/householder';
 import { UpdateHouseholderDto } from './dto/update-householder.dto';
+import { FeeService } from '../fee/fee.service';
+import { getRatio } from 'src/utils/helper';
 
 @ApiTags('people')
 @ApiBearerAuth()
 @Controller()
 export class PeopleController {
-  constructor(private readonly peopleService: PeopleService) {}
+  constructor(
+    private readonly peopleService: PeopleService,
+    private readonly feeService: FeeService,
+  ) {}
   @ApiOperation({ summary: 'Đăng ký cư trú' })
   @Post()
   async registerResidence(@Body() data: RegisterResidenceDto) {
     try {
       const { apartmentId, isCreateHousehold } = data;
       delete data.isCreateHousehold;
+      const citizenId = data.citizenId;
+      if (citizenId) {
+        const people = await this.peopleService.getOnePeopleWithFilter({
+          citizenId,
+        });
+        if (people)
+          throw new ConflictException(ErrorMessage.EXIST_PEOPLE_CITIZEN_ID);
+      }
       const checkExistHousehold =
         await this.peopleService.checkExistHousehold(apartmentId);
       if (isCreateHousehold) {
@@ -48,6 +61,12 @@ export class PeopleController {
           relationWithHouseholder: RelationType.HOUSEHOLDER,
         };
         await this.peopleService.saveOnePeople(householder);
+        const date = new Date().getDate();
+        if (date <= 5 || date >= 25) return;
+        await this.feeService.createBillForNewHousehold(
+          apartmentId,
+          getRatio(date),
+        );
       } else {
         if (!checkExistHousehold)
           throw new BadRequestException(ErrorMessage.HOUSEHOLD_NOT_FOUND);
@@ -139,6 +158,10 @@ export class PeopleController {
   @Delete('household/:apartmentId')
   async deleteAllPeopleInHousehold(@Param('apartmentId') apartmentId: string) {
     try {
+      const isExistDebtBill =
+        await this.feeService.checkExistDebtBill(apartmentId);
+      if (isExistDebtBill)
+        throw new BadRequestException(ErrorMessage.EXIST_DEBT);
       return await this.peopleService.deleteHousehold(apartmentId);
     } catch (error) {
       throw error;

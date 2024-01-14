@@ -24,4 +24,11 @@ export const enum ErrorMessage {
   MONEY_NOT_SUITABLE = 'Số tiền nộp không phù hợp',
   BAD_REQUEST = 'Thông tin cung cấp không chính xác',
   CANNOT_CHANGE_RELATION = 'Không thể thay đổi mối quan hệ với chủ hộ do không tìm thấy nhân khẩu hoặc người này đang là chủ hộ',
+  EXIST_PEOPLE_CITIZEN_ID = 'Số căn cước công dân đã tồn tại',
+  EXIST_DEBT = 'Hộ vẫn còn dư nợ không thể xóa',
+  VEHICLE_EXIST = 'Phương tiện đã được đăng ký trước đó',
+  FEE_EXIST = 'Phí đã tồn tại',
+  NOT_SUITABLE_NAME_AND_UNIT = 'Tên phí và đơn vị không phù hợp',
+  FEE_CANNOT_BE_UPDATED_THIS_WAY = 'Phí này không thể thay đổi theo cách này',
+  FEE_CANNOT_BE_DELETE_THIS_WAY = 'Phí này không thể xóa theo cách này',
 }

@@ -84,4 +84,13 @@ export class ApartmentService {
       throw error;
     }
   }
+
+  async getListApartmentId() {
+    try {
+      return await this.apartmentRepository.find({ select: ['apartmentId'] });
+    } catch (error) {
+      console.log('🚀 ~ ApartmentService ~ getListApartmentId ~ error:', error);
+      throw error;
+    }
+  }
 }

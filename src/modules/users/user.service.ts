@@ -52,8 +52,13 @@ export class UserService {
     }
   }
 
-  async findOneWithId(id: string) {
+  async findOneWithId(id: string, withDetails?: boolean) {
     try {
+      if (withDetails)
+        return this.userRepository.findOne({
+          where: { id },
+          relations: { people: true },
+        });
       return this.userRepository.findOne({ where: { id } });
     } catch (error) {
       console.log('🚀 ~ UserService ~ findOneWithId ~ error:', error);
