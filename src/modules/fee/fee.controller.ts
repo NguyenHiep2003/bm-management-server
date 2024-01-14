@@ -84,6 +84,8 @@ export class FeeController {
     try {
       return await this.feeService.deleteFee(id);
     } catch (error) {
+      if (error instanceof FailResult)
+        throw new BadRequestException(error.message);
       throw error;
     }
   }

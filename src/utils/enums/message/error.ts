@@ -29,4 +29,6 @@ export const enum ErrorMessage {
   VEHICLE_EXIST = 'Phương tiện đã được đăng ký trước đó',
   FEE_EXIST = 'Phí đã tồn tại',
   NOT_SUITABLE_NAME_AND_UNIT = 'Tên phí và đơn vị không phù hợp',
+  FEE_CANNOT_BE_UPDATED_THIS_WAY = 'Phí này không thể thay đổi theo cách này',
+  FEE_CANNOT_BE_DELETE_THIS_WAY = 'Phí này không thể xóa theo cách này',
 }

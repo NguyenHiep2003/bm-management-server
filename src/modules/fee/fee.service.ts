@@ -61,8 +61,14 @@ export class FeeService {
 
   async deleteFee(id: string) {
     try {
+      const fee = await this.feeRepository.findOne({ where: { id } });
+      const thirdPartyFee: any = Object.values(ThirdPartyFeeName);
+      const check = thirdPartyFee.includes(fee.name);
+      if (check)
+        throw new FailResult(ErrorMessage.FEE_CANNOT_BE_DELETE_THIS_WAY);
       return await this.feeRepository.softDelete({ id });
     } catch (error) {
+      if (error instanceof FailResult) throw error;
       console.log('🚀 ~ FeeService ~ deleteFee ~ error:', error);
       throw error;
     }
@@ -70,8 +76,14 @@ export class FeeService {
 
   async updateFee(id: string, data: UpdateFeeDto) {
     try {
+      const fee = await this.feeRepository.findOne({ where: { id } });
+      const thirdPartyFee: any = Object.values(ThirdPartyFeeName);
+      const check = thirdPartyFee.includes(fee.name);
+      if (check)
+        throw new CreateFail(ErrorMessage.FEE_CANNOT_BE_UPDATED_THIS_WAY);
       return await this.feeRepository.update({ id }, data);
     } catch (error) {
+      if (error instanceof FailResult) throw error;
       console.log('🚀 ~ FeeService ~ updateFee ~ error:', error);
       throw error;
     }
@@ -291,7 +303,9 @@ export class FeeService {
         status = [BillStatus.DEBT, BillStatus.HAVE_PAID];
       const bills = await this.billRepository
         .createQueryBuilder('bill')
+        .withDeleted()
         .select([
+          'bill.id',
           'bill.apartmentId',
           'bill.month',
           'bill.year',
@@ -299,9 +313,13 @@ export class FeeService {
           'bill.payDay',
           'bill.payerName',
           'bill.billCollector',
+          'bill.amount',
         ])
-        .addSelect('sum(bill.amount)', 'total')
+        .leftJoin('bill.fee', 'fee')
+        .addSelect('fee.name')
         .groupBy('bill.apartmentId')
+        .addGroupBy('bill.id')
+        .addGroupBy('fee.name')
         .addGroupBy('bill.month')
         .addGroupBy('bill.year')
         .addGroupBy('bill.status')
