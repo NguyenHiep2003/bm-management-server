@@ -28,4 +28,5 @@ export const enum ErrorMessage {
   EXIST_DEBT = 'Hộ vẫn còn dư nợ không thể xóa',
   VEHICLE_EXIST = 'Phương tiện đã được đăng ký trước đó',
   FEE_EXIST = 'Phí đã tồn tại',
+  NOT_SUITABLE_NAME_AND_UNIT = 'Tên phí và đơn vị không phù hợp',
 }

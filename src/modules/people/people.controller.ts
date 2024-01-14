@@ -27,7 +27,7 @@ import { PaginationQuery } from 'src/shared/custom/pagination.query';
 import { RelationType } from 'src/utils/enums/attribute/householder';
 import { UpdateHouseholderDto } from './dto/update-householder.dto';
 import { FeeService } from '../fee/fee.service';
-import { getRatio } from 'src/utils/getRatioOnDay';
+import { getRatio } from 'src/utils/helper';
 
 @ApiTags('people')
 @ApiBearerAuth()

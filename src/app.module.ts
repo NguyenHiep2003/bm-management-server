@@ -27,12 +27,13 @@ import { appProvider } from './app.provider';
 import { GuestModule } from './modules/guest/guest.module';
 import { VehicleModule } from './modules/vehicles/vehicle.module';
 import { Vehicle } from './modules/vehicles/vehicle.entity';
-
+import thirdPartyKey from './config/third-party-key';
+('./config/');
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [database, jwt, mail],
+      load: [database, jwt, mail, thirdPartyKey],
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],

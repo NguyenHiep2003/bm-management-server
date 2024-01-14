@@ -19,15 +19,18 @@ import { User } from '../users/user.entity';
 import { Apartment } from '../apartments/entities/apartment.entity';
 import { FeeUnit } from 'src/utils/enums/attribute/fee-unit';
 import { Vehicle } from '../vehicles/vehicle.entity';
-import { FeeName } from 'src/utils/enums/attribute/fee-name';
+import { FeeName, ThirdPartyFeeName } from 'src/utils/enums/attribute/fee-name';
 import { VehicleType } from 'src/utils/enums/attribute/vehicle-type';
-import { getRatio } from 'src/utils/getRatioOnDay';
+import { getRatio } from 'src/utils/helper';
+import { CreateBillsDto } from './dto/create-bill.dto';
+import { ApartmentService } from '../apartments/apartment.service';
 @Injectable()
 export class FeeService {
   constructor(
     @InjectRepository(Fee) private readonly feeRepository: Repository<Fee>,
     @InjectRepository(Bill) private readonly billRepository: Repository<Bill>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly apartmentService: ApartmentService,
   ) {}
 
   async addFee(data: CreateFeeDto) {
@@ -356,9 +359,38 @@ export class FeeService {
           payDay: new Date(),
           payerName,
           status: BillStatus.HAVE_PAID,
-          billCollector: billCollector.people.name,
+          billCollector: billCollector.people?.name,
         },
       );
+    } catch (error) {
+      if (error instanceof FailResult) throw error;
+      console.log('🚀 ~ FeeService ~ error:', error);
+      throw error;
+    }
+  }
+
+  async addSinglePayment(
+    id: string,
+    payMoney: number,
+    payerName: string,
+    billCollectorId: string,
+  ) {
+    try {
+      const bill = await this.billRepository.findOne({ where: { id } });
+      if (!bill) throw new EntityNotFound(ErrorMessage.BILL_NOT_FOUND);
+      if (bill.status === BillStatus.HAVE_PAID)
+        throw new UpdateFail(ErrorMessage.BILL_HAVE_BEEN_PAID);
+      if (bill.amount !== payMoney)
+        throw new UpdateFail(ErrorMessage.MONEY_NOT_SUITABLE);
+      const billCollector = await this.userRepository.findOne({
+        where: { id: billCollectorId },
+        relations: { people: true },
+      });
+      bill.status = BillStatus.HAVE_PAID;
+      bill.billCollector = billCollector.people?.name;
+      bill.payerName = payerName;
+      bill.payDay = new Date();
+      return await this.billRepository.save(bill);
     } catch (error) {
       if (error instanceof FailResult) throw error;
       console.log('🚀 ~ FeeService ~ error:', error);
@@ -402,6 +434,123 @@ export class FeeService {
       return debtBill ? true : false;
     } catch (error) {
       console.log('🚀 ~ FeeService ~ checkExistDebtBell ~ error:', error);
+      throw error;
+    }
+  }
+  async checkExistBillOfFeeNameAtMonth(
+    month: number,
+    year: number,
+    name: ThirdPartyFeeName,
+  ) {
+    try {
+      const bill = await this.billRepository
+        .createQueryBuilder('bill')
+        .withDeleted()
+        .innerJoin('bill.fee', 'fee')
+        .where('fee.name = :name', {
+          name,
+        })
+        .andWhere('month = :month', { month })
+        .andWhere('year =:year', { year })
+        .addSelect('fee.name')
+        .getOne();
+      return bill ? true : false;
+    } catch (error) {
+      console.log(
+        '🚀 ~ FeeService ~ constcheckExistBillOfFeeNameThisMonth ~ error:',
+        error,
+      );
+      throw error;
+    }
+  }
+
+  async upsertFeeAndReturn(
+    name: ThirdPartyFeeName,
+    price: number,
+    unit: FeeUnit,
+  ) {
+    try {
+      const existFee = await this.feeRepository.findOne({
+        where: { name },
+      });
+      if (existFee) {
+        existFee.price = price;
+        existFee.unit = unit;
+        return await this.feeRepository.save(existFee);
+      } else
+        return await this.feeRepository.save({
+          name,
+          price,
+          unit,
+        });
+    } catch (error) {
+      console.log('🚀 ~ FeeService ~ upsertFeeAndReturn ~ error:', error);
+      throw error;
+    }
+  }
+  // async handleCreateElectricityBillAndUpsertFee(data: CreateBillsDto) {
+  //   try {
+  //     const { month, year, unit, price, bills } = data;
+  //     const isExistBill = await this.checkExistBillOfFeeNameAtMonth(
+  //       month,
+  //       year,
+  //       ThirdPartyService.ELECTRICITY_SERVICE,
+  //     );
+  //     if (isExistBill) throw new CreateFail(ErrorMessage.BILL_EXIST);
+  //     const fee = await this.upsertFeeAndReturn(
+  //       ThirdPartyService.ELECTRICITY_SERVICE,
+  //       price,
+  //       unit,
+  //     );
+  //     const apartmentList = await this.apartmentService.getListApartmentId();
+  //     bills.forEach((bill, index) => {
+  //       const existApartmentId = apartmentList.find(
+  //         (apartment) => apartment.apartmentId === bill.apartmentId,
+  //       );
+  //       console.log(bills[index], '>>>');
+  //       if (!existApartmentId)
+  //         throw new CreateFail(`Hộ số ${bill.apartmentId} không tồn tại`);
+  //       else
+  //         bills[index] = { ...bills[index], month, year, feeId: fee.id } as any;
+  //     });
+  //     await this.billRepository.save(bills);
+  //   } catch (error) {
+  //     if (error instanceof FailResult) throw error;
+  //     console.log(
+  //       '🚀 ~ FeeService ~ handleCreateElectricityBillAndUpsertFee ~ error:',
+  //       error,
+  //     );
+  //     throw error;
+  //   }
+  // }
+
+  async handleCreateBillAndUpsertFee(
+    data: CreateBillsDto,
+    name: ThirdPartyFeeName,
+  ) {
+    try {
+      const { month, year, unit, price, bills } = data;
+      const isExistBill = await this.checkExistBillOfFeeNameAtMonth(
+        month,
+        year,
+        name,
+      );
+      if (isExistBill) throw new CreateFail(ErrorMessage.BILL_EXIST);
+      const fee = await this.upsertFeeAndReturn(name, price, unit);
+      const apartmentList = await this.apartmentService.getListApartmentId();
+      bills.forEach((bill, index) => {
+        const existApartmentId = apartmentList.find(
+          (apartment) => apartment.apartmentId === bill.apartmentId,
+        );
+        if (!existApartmentId)
+          throw new CreateFail(`Hộ số ${bill.apartmentId} không tồn tại`);
+        else
+          bills[index] = { ...bills[index], month, year, feeId: fee.id } as any;
+      });
+      await this.billRepository.save(bills);
+    } catch (error) {
+      if (error instanceof FailResult) throw error;
+      console.log('🚀 ~ FeeService ~ error:', error);
       throw error;
     }
   }

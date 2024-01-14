@@ -12,7 +12,7 @@ import { BillStatus } from 'src/utils/enums/attribute/bill-status';
 
 @Entity()
 export class Bill {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @CreateDateColumn()
