@@ -18,6 +18,7 @@ import {
 } from 'src/shared/custom/fail-result.custom';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
+import { Public } from 'src/shared/decorators/public.decorator';
 @ApiTags('charity')
 @ApiBearerAuth()
 @Controller()
@@ -38,6 +39,7 @@ export class CharityController {
     }
   }
 
+  @Public()
   @ApiOperation({ summary: 'Lấy danh sách các khoản phí từ thiện' })
   @Get('fee')
   async getOptionalFee() {
@@ -55,11 +57,10 @@ export class CharityController {
     @Body() data: AddDonateDto,
   ) {
     try {
-      const { donatorName, amount, apartmentId } = data;
+      const { peopleId, amount } = data;
       return await this.charityService.addDonate(
         optionalFeeId,
-        donatorName,
-        apartmentId,
+        peopleId,
         amount,
       );
     } catch (error) {
@@ -71,6 +72,7 @@ export class CharityController {
     }
   }
 
+  @Public()
   @ApiOperation({
     summary: 'Thống kê quỹ của khoản phí từ thiện có Id là feeId',
   })

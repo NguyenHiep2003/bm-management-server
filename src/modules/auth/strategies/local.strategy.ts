@@ -10,10 +10,10 @@ export class LocalAuthStrategy extends PassportStrategy(Strategy) {
   }
   async validate(email: string, password: string) {
     try {
-      const userId = await this.authService.validateUser(email, password);
-      if (!userId)
+      const userInfo = await this.authService.validateUser(email, password);
+      if (!userInfo)
         throw new UnauthorizedException(ErrorMessage.WRONG_CREDENTIAL);
-      return { id: userId };
+      return userInfo;
     } catch (error) {
       throw error;
     }

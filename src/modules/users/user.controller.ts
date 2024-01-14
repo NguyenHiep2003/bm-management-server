@@ -132,4 +132,14 @@ export class UserController {
       throw error;
     }
   }
+
+  @ApiOperation({ summary: 'Lấy thông tin đầy đủ của người dùng' })
+  @Get('/profile')
+  async getProfile(@UserDecor('id') id: string) {
+    try {
+      return await this.userService.getProfile(id);
+    } catch (error) {
+      throw error;
+    }
+  }
 }

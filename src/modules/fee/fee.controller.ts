@@ -5,6 +5,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -22,8 +23,25 @@ import { GetSummaryPaymentDto } from './dto/get-summary-payment.dto';
 import { AddPaymentDto } from './dto/add-payment.dto';
 import { CreateFail, FailResult } from 'src/shared/custom/fail-result.custom';
 import { ErrorMessage } from 'src/utils/enums/message/error';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiHeader,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { PaginationQuery } from 'src/shared/custom/pagination.query';
+import { BillStatus } from 'src/utils/enums/attribute/bill-status';
+import { UserDecor } from 'src/shared/decorators/user.decorator';
+import {
+  getFeeName,
+  validateCreateBillInput,
+  validateCreateBillTime,
+  validateCreateFeeInput,
+} from 'src/utils/helper';
+import { KeyAuthGuard, ThirdPartyService } from '../auth/guards/key-auth.guard';
+import { Public } from 'src/shared/decorators/public.decorator';
+import { CreateBillsDto } from './dto/create-bill.dto';
+import { AddSinglePaymentDto } from './dto/add-payment-single.dto';
 
 @ApiTags('fee')
 @ApiBearerAuth()
@@ -36,6 +54,12 @@ export class FeeController {
   @Post()
   async addNewFee(@Body() data: CreateFeeDto) {
     try {
+      const { name, unit } = data;
+      const isValidateInput = validateCreateFeeInput(name, unit);
+      if (!isValidateInput)
+        throw new BadRequestException(ErrorMessage.NOT_SUITABLE_NAME_AND_UNIT);
+      const fee = await this.feeService.getFeeByName(name);
+      if (fee) throw new ConflictException(ErrorMessage.FEE_EXIST);
       return await this.feeService.addFee(data);
     } catch (error) {
       throw error;
@@ -65,8 +89,8 @@ export class FeeController {
   }
 
   @ApiOperation({ summary: 'Lấy danh sách tất cả các hóa đơn đang bị nợ' })
-  @Get('bills/dept')
-  async getAllDept(@Query() query: PaginationQuery) {
+  @Get('bills/debt')
+  async getAllDebt(@Query() query: PaginationQuery) {
     try {
       const deptList = await this.feeService.getAllDebt();
       const { recordPerPage, page } = query;
@@ -118,14 +142,28 @@ export class FeeController {
       ]);
       const totalRecord = bills.length;
       const totalPage = Math.ceil(totalRecord / recordPerPage);
-      return {
-        totalRecord,
-        totalPage,
-        paymentList: bills.slice(
-          (page - 1) * recordPerPage,
-          page * recordPerPage,
-        ),
-      };
+      let totalPaid = 0;
+      if (!filterAndPagination.status) {
+        for (const i of bills)
+          if (i.bill_status === BillStatus.HAVE_PAID) totalPaid++;
+        return {
+          totalRecord,
+          totalPage,
+          totalPaid,
+          paymentList: bills.slice(
+            (page - 1) * recordPerPage,
+            page * recordPerPage,
+          ),
+        };
+      } else
+        return {
+          totalRecord,
+          totalPage,
+          paymentList: bills.slice(
+            (page - 1) * recordPerPage,
+            page * recordPerPage,
+          ),
+        };
     } catch (error) {
       throw error;
     }
@@ -133,7 +171,7 @@ export class FeeController {
 
   @ApiOperation({
     summary:
-      'Tạo hóa đơn của tháng hiện tại, thông thường không cần API này do đã cài đặt lập lịch sắn trên server để tạo tự động hóa đơn',
+      'Tạo hóa đơn của tháng hiện tại, thông thường không cần API này do đã cài đặt lập lịch sẵn trên server để tạo tự động hóa đơn',
   })
   @Post('bills')
   async createBills() {
@@ -148,12 +186,13 @@ export class FeeController {
   }
 
   @ApiOperation({
-    summary: 'Thêm nộp tiền cho căn hộ',
+    summary: 'Thêm nộp tiền (đóng tất cả hóa đơn trong tháng) cho căn hộ',
   })
   @Patch('bills/:apartmentId')
-  async addPayment(
+  async addPaymentForAll(
     @Param('apartmentId') apartmentId: string,
     @Body() data: AddPaymentDto,
+    @UserDecor('id') billCollectorId: string,
   ) {
     try {
       const { month, year, payMoney, payerName } = data;
@@ -163,6 +202,31 @@ export class FeeController {
         month,
         year,
         payerName,
+        billCollectorId,
+      );
+    } catch (error) {
+      if (error instanceof FailResult)
+        throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  @ApiOperation({
+    summary: 'Thêm nộp tiền cho 1 hóa đơn',
+  })
+  @Patch('bills/addById/:id')
+  async addPayment(
+    @Param('id') id: string,
+    @Body() data: AddSinglePaymentDto,
+    @UserDecor('id') billCollectorId: string,
+  ) {
+    try {
+      const { payMoney, payerName } = data;
+      return await this.feeService.addSinglePayment(
+        id,
+        payMoney,
+        payerName,
+        billCollectorId,
       );
     } catch (error) {
       if (error instanceof FailResult)
@@ -181,6 +245,43 @@ export class FeeController {
     try {
       return await this.feeService.updateFee(id, data);
     } catch (error) {
+      if (error instanceof FailResult)
+        throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  @UseGuards(KeyAuthGuard)
+  @ApiHeader({
+    name: 'service',
+    description: 'Tên dịch vụ',
+    required: true,
+    enum: ThirdPartyService,
+  })
+  @ApiHeader({
+    name: 'x-api-service-key',
+    required: true,
+    description: 'API key',
+  })
+  @Public()
+  @Post('bill/thirdPartyService')
+  async createBillsForThirdParty(
+    @Body() data: CreateBillsDto,
+    @Headers('service') service: ThirdPartyService,
+  ) {
+    try {
+      const name = getFeeName(service);
+      const { unit, month, year } = data;
+      const isValidUnit = validateCreateBillInput(name, unit);
+      if (!isValidUnit)
+        throw new BadRequestException(ErrorMessage.NOT_SUITABLE_NAME_AND_UNIT);
+      const isValidTime = validateCreateBillTime(month, year);
+      if (!isValidTime)
+        throw new BadRequestException(ErrorMessage.TIME_NOT_SUITABLE);
+      await this.feeService.handleCreateBillAndUpsertFee(data, name);
+    } catch (error) {
+      if (error instanceof FailResult)
+        throw new ConflictException(error.message);
       throw error;
     }
   }

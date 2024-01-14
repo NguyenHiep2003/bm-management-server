@@ -1,18 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsPositive, IsString } from 'class-validator';
 
 export class AddDonateDto {
-  @ApiProperty({ description: 'Số hiệu căn hộ', example: '101' })
+  @ApiProperty({
+    description: 'Mã cư dân',
+    example: '0298e16e-9ef8-4a70-9f2a-80e15554948f',
+  })
   @IsString()
   @IsNotEmpty()
-  apartmentId: string;
-
-  @ApiProperty({ description: 'Tên người ủng hộ', example: 'Nguyễn Phúc Hiệp' })
-  @IsString()
-  @IsNotEmpty()
-  @Transform(({ value }) => value?.trim())
-  donatorName: string;
+  peopleId: string;
 
   @ApiProperty({
     description: 'Số tiền đóng góp',

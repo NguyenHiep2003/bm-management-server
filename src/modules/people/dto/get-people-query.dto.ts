@@ -1,6 +1,13 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { BasePeopleInfo } from './register-residence.dto';
-import { IsInt, IsOptional, IsPositive, Min } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GetPeopleQueryDto extends PartialType(BasePeopleInfo) {
@@ -20,4 +27,13 @@ export class GetPeopleQueryDto extends PartialType(BasePeopleInfo) {
   @IsInt()
   @Type(() => Number)
   recordPerPage: number;
+
+  @ApiPropertyOptional({
+    description: 'Mã căn hộ',
+    example: '101',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  apartmentId: string;
 }

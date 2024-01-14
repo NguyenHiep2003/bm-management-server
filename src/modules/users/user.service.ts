@@ -52,8 +52,13 @@ export class UserService {
     }
   }
 
-  async findOneWithId(id: string) {
+  async findOneWithId(id: string, withDetails?: boolean) {
     try {
+      if (withDetails)
+        return this.userRepository.findOne({
+          where: { id },
+          relations: { people: true },
+        });
       return this.userRepository.findOne({ where: { id } });
     } catch (error) {
       console.log('🚀 ~ UserService ~ findOneWithId ~ error:', error);
@@ -84,7 +89,7 @@ export class UserService {
 
   async deleteUser(id: string) {
     try {
-      return await this.userRepository.softDelete({ id });
+      return await this.userRepository.delete({ id });
     } catch (error) {
       console.log('🚀 ~ UserService ~ deleteAccount ~ error:', error);
       throw error;
@@ -100,6 +105,30 @@ export class UserService {
       });
     } catch (error) {
       console.log('🚀 ~ UserService ~ getAdmin ~ error:', error);
+      throw error;
+    }
+  }
+  async getBaseAdminInfo() {
+    try {
+      return await this.userRepository
+        .createQueryBuilder('user')
+        .leftJoin('user.people', 'people')
+        .select(['people.name', 'people.apartmentId', 'user.email'])
+        .where('user.role = :role', { role: 'Thành viên ban quản trị' })
+        .getMany();
+    } catch (error) {
+      console.log('🚀 ~ UserService ~ getBaseAdminInfo ~ error:', error);
+      throw error;
+    }
+  }
+  async getProfile(id: string) {
+    try {
+      return await this.userRepository.findOne({
+        where: { id },
+        relations: { people: true },
+      });
+    } catch (error) {
+      console.log('🚀 ~ UserService ~ getProfile ~ error:', error);
       throw error;
     }
   }

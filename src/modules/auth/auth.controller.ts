@@ -15,10 +15,13 @@ export class AuthController {
   @Public()
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  async login(@UserDecor('id') userId: string) {
+  async login(
+    @UserDecor('id') userId: string,
+    @UserDecor('role') role: string,
+  ) {
     try {
       const token = this.authService.generateToken({ id: userId });
-      return { accessToken: token };
+      return { accessToken: token, role };
     } catch (error) {
       throw error;
     }

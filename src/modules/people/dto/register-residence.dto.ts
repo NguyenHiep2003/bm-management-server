@@ -4,13 +4,16 @@ import {
   ArrayMinSize,
   Equals,
   IsArray,
+  IsBoolean,
   IsDate,
   IsDefined,
+  IsEmail,
   IsEnum,
   IsIn,
   IsNotEmpty,
   IsNotEmptyObject,
   IsOptional,
+  IsPhoneNumber,
   IsString,
   NotEquals,
   ValidateIf,
@@ -71,6 +74,7 @@ export class BasePeopleInfo {
   @IsOptional()
   @IsString()
   @IsNotEmpty()
+  @IsEmail()
   email: string;
 
   @ApiProperty({
@@ -79,7 +83,7 @@ export class BasePeopleInfo {
   })
   @IsString()
   @IsNotEmpty()
-  homeTown: string;
+  hometown: string;
 
   @ApiProperty({
     description: 'Địa chỉ thường trú',
@@ -93,12 +97,12 @@ export class BasePeopleInfo {
   @IsEnum(Gender)
   gender: Gender;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Nghề nghiệp',
     example: 'Sinh viên',
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   career: string;
 }
 export class PermanentHouseHolderInfo extends OmitType(BasePeopleInfo, [
@@ -264,19 +268,99 @@ export class RegisterResidenceDto {
   ])
   status: ResidencyStatus;
 
-  @ApiProperty()
-  @ValidateIf((o) => o.status === ResidencyStatus.PERMANENT_RESIDENCE)
-  @IsDefined()
-  @IsNotEmptyObject()
-  @ValidateNested()
-  @Type(() => PermanentRegister)
-  permanentRegister: PermanentRegister;
+  @ApiProperty({ description: 'Đăng ký lập hộ mới hay không?', example: true })
+  @IsBoolean()
+  isCreateHousehold: boolean;
 
-  @ApiProperty()
-  @ValidateIf((o) => o.status === ResidencyStatus.TEMPORARY_RESIDENCE)
-  @IsDefined()
-  @IsNotEmptyObject()
-  @ValidateNested()
-  @Type(() => TemporaryRegister)
-  temporaryRegister: TemporaryRegister;
+  @ApiProperty({ description: 'Tên cư dân', example: 'Nguyễn Phúc Hiệp' })
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) => value?.trim())
+  name: string;
+
+  @ApiProperty({ description: 'Quốc tịch', example: 'Việt Nam' })
+  @IsString()
+  @IsNotEmpty()
+  nation: string;
+
+  @ApiProperty({ description: 'Ngày sinh', example: '2003-11-30' })
+  @IsDate()
+  dateOfBirth: Date;
+
+  @ApiPropertyOptional({
+    description: 'Mã số căn cước',
+    example: '001203045678',
+  })
+  @ValidateIf((val) => val.isCreateHousehold === true)
+  @IsString()
+  @IsNotEmpty()
+  citizenId: string;
+
+  @ApiProperty({ description: 'Dân tộc', example: 'Kinh' })
+  @IsString()
+  @IsNotEmpty()
+  ethnic: string;
+
+  @ApiProperty({ description: 'Tôn giáo', example: 'Không' })
+  @IsString()
+  @IsNotEmpty()
+  religion: string;
+
+  @ApiPropertyOptional({
+    description: 'Số diện thoại',
+    example: '0902345678',
+  })
+  @IsOptional()
+  @IsString()
+  @IsPhoneNumber('VN')
+  @IsNotEmpty()
+  phoneNumber: string;
+
+  @ApiPropertyOptional({
+    description: 'Email',
+    example: 'hahaha@gmail.com',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({
+    description: 'Quê quán',
+    example: 'Thường tín, Phú Xuyên, Hà Nội',
+  })
+  @IsString()
+  @IsNotEmpty()
+  hometown: string;
+
+  @ApiProperty({
+    description: 'Địa chỉ thường trú',
+    example: 'Phú Minh, Phú Xuyên, Hà Nội',
+  })
+  @IsString()
+  @IsNotEmpty()
+  permanentAddress: string;
+
+  @ApiProperty({ description: 'Giới tính', enum: Gender })
+  @IsEnum(Gender)
+  gender: Gender;
+
+  @ApiPropertyOptional({
+    description: 'Nghề nghiệp',
+    example: 'Sinh viên',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  career: string;
+
+  @ApiPropertyOptional({
+    description: 'Quan hệ với chủ hộ (không được là "Chủ hộ")',
+    example: 'Con đẻ',
+  })
+  @ValidateIf((val) => val.isCreateHousehold === false)
+  @IsString()
+  @IsNotEmpty()
+  @NotEquals(RelationType.HOUSEHOLDER)
+  relationWithHouseholder: string;
 }

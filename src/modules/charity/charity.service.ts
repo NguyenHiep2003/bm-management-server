@@ -41,32 +41,22 @@ export class CharityService {
     }
   }
 
-  async addDonate(
-    optionalFeeId: string,
-    donatorName: string,
-    apartmentId: string,
-    amount: number,
-  ) {
+  async addDonate(optionalFeeId: string, peopleId: string, amount: number) {
     try {
-      const people = await this.peopleService.getAllPeopleWithFilter(
-        null,
-        null,
-        {
-          name: donatorName,
-          apartmentId,
-        },
-      );
-      if (!people[0]) throw new EntityNotFound(ErrorMessage.PEOPLE_NOT_FOUND);
+      const people = await this.peopleService.findPeopleById(peopleId);
+      if (!people) throw new EntityNotFound(ErrorMessage.PEOPLE_NOT_FOUND);
       const fee = await this.optionalFeeRepository.findOne({
         where: { id: optionalFeeId },
       });
       if (!fee) throw new EntityNotFound(ErrorMessage.FEE_NOT_FOUND);
-      if (fee.endDate.getTime() < new Date().getTime())
-        throw new CreateFail(ErrorMessage.EXPIRED_FEE);
+      if (
+        fee.endDate.getTime() < new Date().getTime() ||
+        fee.startDate.getTime() > new Date().getTime()
+      )
+        throw new CreateFail(ErrorMessage.EXPIRED_FEE_OR_TOO_EARLY_TO_DONATE);
       return await this.charityFundRepository.save({
         optionalFeeId,
-        donatorName,
-        apartmentId,
+        peopleId,
         amount,
       });
     } catch (error) {
@@ -80,14 +70,19 @@ export class CharityService {
     try {
       const data = await this.charityFundRepository
         .createQueryBuilder('fund')
+        .withDeleted()
+        .leftJoin('fund.people', 'people')
         .select([
-          'fund.donatorName AS donator',
-          'fund.apartmentId as apartmentId',
+          'people.name AS donator',
+          'people.apartmentId as apartmentId',
+          'people.citizenId as citizenId',
+          'people.id as id',
         ])
         .addSelect('SUM(fund.amount)', 'total')
-        .groupBy('fund.donatorName')
-        .addGroupBy('fund.apartmentId')
+        .groupBy('people.id')
+        // .addGroupBy('fund.apartmentId')
         .where('fund.optionalFeeId = :optionalFeeId', { optionalFeeId })
+        .orderBy('total', 'DESC')
         .getRawMany();
       let sum = 0;
       for (const record of data) {

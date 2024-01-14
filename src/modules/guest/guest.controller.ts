@@ -5,6 +5,7 @@ import { PeopleService } from '../people/people.service';
 import { GetBillDto } from './dto/get-bill.dto';
 import { ErrorMessage } from 'src/utils/enums/message/error';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserService } from '../users/user.service';
 
 @ApiTags('guest')
 @Public()
@@ -13,8 +14,11 @@ export class GuestController {
   constructor(
     private readonly feeService: FeeService,
     private readonly peopleService: PeopleService,
+    private readonly userService: UserService,
   ) {}
-  @ApiOperation({ summary: 'Allow guests find their bill' })
+  @ApiOperation({
+    summary: 'Cho phép khách tra cứu hóa đơn phòng tháng hiện tại',
+  })
   @Get('bill')
   async getBill(@Query() filter: GetBillDto) {
     try {
@@ -29,6 +33,17 @@ export class GuestController {
         year,
       );
     } catch (error) {
+      throw error;
+    }
+  }
+
+  @ApiOperation({ summary: 'Cho phép khách lấy danh sách admin của chung cư' })
+  @Get('admin')
+  async getAdmin() {
+    try {
+      return await this.userService.getBaseAdminInfo();
+    } catch (error) {
+      console.log('🚀 ~ GuestController ~ getAdmin ~ error:', error);
       throw error;
     }
   }
