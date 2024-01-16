@@ -30,6 +30,17 @@ export class UserService {
     peopleId?: string,
   ) {
     try {
+      const existUserOfPeople = await this.userRepository.findOne({
+        where: { peopleId },
+        withDeleted: true,
+      });
+      if (existUserOfPeople) {
+        existUserOfPeople.deleteAt = null;
+        existUserOfPeople.email = email;
+        existUserOfPeople.password = hashedPassword;
+        existUserOfPeople.role = role;
+        return await this.userRepository.save(existUserOfPeople);
+      }
       const user = this.userRepository.create({
         email,
         password: hashedPassword,
@@ -89,7 +100,7 @@ export class UserService {
 
   async deleteUser(id: string) {
     try {
-      return await this.userRepository.delete({ id });
+      return await this.userRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ UserService ~ deleteAccount ~ error:', error);
       throw error;
