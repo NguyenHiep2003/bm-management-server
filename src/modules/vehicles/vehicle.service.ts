@@ -43,7 +43,7 @@ export class VehicleService {
   }
   async deleteOne(numberPlate: string) {
     try {
-      return await this.vehicleRepository.delete({ numberPlate });
+      return await this.vehicleRepository.softDelete({ numberPlate });
     } catch (error) {
       console.log('🚀 ~ VehicleService ~ deleteOne ~ error:', error);
       throw error;

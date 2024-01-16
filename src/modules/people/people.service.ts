@@ -182,9 +182,9 @@ export class PeopleService {
       const people = await this.peopleRepository.findOne({ where: { id } });
       if (people.relationWithHouseholder == RelationType.HOUSEHOLDER)
         return null;
-      await this.userRepository.delete({ peopleId: id });
-      await this.temporaryAbsentRepository.delete({ peopleId: id });
-      await this.vehicleRepository.delete({ ownerId: id });
+      await this.userRepository.softDelete({ peopleId: id });
+      await this.temporaryAbsentRepository.softDelete({ peopleId: id });
+      await this.vehicleRepository.softDelete({ ownerId: id });
       return await this.peopleRepository.softDelete({ id });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deletePeopleById ~ error:', error);
@@ -200,13 +200,13 @@ export class PeopleService {
       });
       const peopleIdList = [];
       for (const i of peopleList) peopleIdList.push(i.id);
-      await this.userRepository.delete({
+      await this.userRepository.softDelete({
         peopleId: In(peopleIdList),
       });
-      await this.temporaryAbsentRepository.delete({
+      await this.temporaryAbsentRepository.softDelete({
         peopleId: In(peopleIdList),
       });
-      await this.vehicleRepository.delete({ ownerId: In(peopleIdList) });
+      await this.vehicleRepository.softDelete({ ownerId: In(peopleIdList) });
       return await this.peopleRepository.softDelete({ apartmentId });
     } catch (error) {
       console.log('🚀 ~ PeopleService ~ deleteHousehold ~ error:', error);
@@ -236,6 +236,8 @@ export class PeopleService {
       if (!people) throw new EntityNotFound(ErrorMessage.PEOPLE_NOT_FOUND);
       if (people.status == status)
         throw new UpdateFail(ErrorMessage.UPDATE_RESIDENCY_NOT_CHANGE);
+      if (people.status == ResidencyStatus.TEMPORARY_RESIDENCE)
+        throw new UpdateFail(ErrorMessage.CANNOT_REGISTER_ABSENT);
       const previousStatus = people.status;
       people.status = status;
       await this.peopleRepository.save(people);

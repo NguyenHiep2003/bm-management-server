@@ -1,4 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  DeleteDateColumn,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  PrimaryColumn,
+} from 'typeorm';
 import { People } from '../people/entities/people.entity';
 import { VehicleType } from 'src/utils/enums/attribute/vehicle-type';
 
@@ -6,6 +13,9 @@ import { VehicleType } from 'src/utils/enums/attribute/vehicle-type';
 export class Vehicle {
   @PrimaryColumn()
   numberPlate: string;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 
   @ManyToOne(() => People, (people) => people.vehicles)
   @JoinColumn({ name: 'ownerId' })
